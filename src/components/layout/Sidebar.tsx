@@ -5,13 +5,14 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
-  { href: '/dashboard',               icon: 'dashboard',      label: 'Dashboard' },
-  { href: '/dashboard/wachtlijst',    icon: 'pending_actions', label: 'Wachtlijst' },
-  { href: '/dashboard/kindplanning',  icon: 'calendar_month', label: 'Kindplanning' },
-  { href: '/dashboard/kinderen',      icon: 'child_care',     label: 'Kinderen' },
-  { href: '/locaties',                icon: 'location_on',    label: 'Locaties' },
-  { href: '/rapportages',             icon: 'bar_chart',      label: 'Rapportages' },
-  { href: '/instellingen',            icon: 'settings',       label: 'Instellingen' },
+  { href: '/dashboard',                icon: 'dashboard',      label: 'Dashboard' },
+  { href: '/dashboard/wachtlijst',     icon: 'pending_actions', label: 'Wachtlijst' },
+  { href: '/dashboard/kindplanning',   icon: 'calendar_month', label: 'Kindplanning' },
+  { href: '/dashboard/kinderen',       icon: 'child_care',     label: 'Kinderen' },
+  { href: '/dashboard/facturen',       icon: 'receipt_long',   label: 'Facturen' },
+  { href: '/locaties',                 icon: 'location_on',    label: 'Locaties' },
+  { href: '/rapportages',              icon: 'bar_chart',      label: 'Rapportages' },
+  { href: '/instellingen',             icon: 'settings',       label: 'Instellingen' },
 ]
 
 export default function Sidebar() {

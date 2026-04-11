@@ -1,4 +1,5 @@
 export type Opvangtype = 'kdv' | 'bso' | 'peuteropvang' | 'gastouder'
+export type FactuurStatus = 'draft' | 'sent' | 'paid' | 'overdue'
 export type Leeftijdscategorie = 'baby' | 'dreumes' | 'peuter' | 'bso'
 export type Contracttype = 'vast' | 'flex' | 'tijdelijk'
 export type ContractStatus = 'actief' | 'wachtlijst' | 'beëindigd' | 'concept' | 'opgeschort'
@@ -100,6 +101,21 @@ export interface Database {
         }
         Insert: Omit<contracten['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<contracten['Row']>
+      }
+      placements: {
+        Row: {
+          id: string
+          organisatie_id: string
+          kind_id: string
+          contract_id: string
+          groep_id: string
+          startdatum: string
+          einddatum: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<placements['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<placements['Row']>
       }
       adressen: {
         Row: {
@@ -287,9 +303,53 @@ export interface Database {
         Insert: Omit<aanbiedingen['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<aanbiedingen['Row']>
       }
+      invoices: {
+        Row: {
+          id: string
+          organisatie_id: string
+          parent_id: string
+          periode_start: string
+          periode_eind: string
+          totaal_bedrag: number
+          status: FactuurStatus
+          factuurnummer: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<invoices['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<invoices['Row']>
+      }
+      invoice_lines: {
+        Row: {
+          id: string
+          invoice_id: string
+          contract_id: string
+          kind_id: string
+          omschrijving: string | null
+          bedrag: number
+          dagen_actief: number | null
+          dagen_in_maand: number | null
+          created_at: string
+        }
+        Insert: Omit<invoice_lines['Row'], 'id' | 'created_at'>
+        Update: Partial<invoice_lines['Row']>
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      generate_maand_facturen: {
+        Args: {
+          p_organisatie_id: string
+          p_jaar: number
+          p_maand: number
+        }
+        Returns: GenerateMaandFacturenRow[]
+      }
+      check_factuur_integriteit: {
+        Args: { p_organisatie_id?: string }
+        Returns: FactuurIntegriteitRij[]
+      }
+    }
     Enums: {
       opvangtype: Opvangtype
       leeftijdscategorie: Leeftijdscategorie
@@ -298,8 +358,26 @@ export interface Database {
       app_role: AppRole
       wachtlijst_status: WachtlijstStatus
       aanbieding_status: AanbiedingStatus
+      factuur_status: FactuurStatus
     }
   }
+}
+
+// Factuur function return types
+export interface GenerateMaandFacturenRow {
+  parent_naam: string
+  parent_email: string | null
+  invoice_id: string | null
+  factuurnummer: string | null
+  totaal_bedrag: number | null
+  aantal_regels: number
+  uitkomst: 'aangemaakt' | 'overgeslagen_bestaat' | 'overgeslagen_geen_tarief'
+}
+
+export interface FactuurIntegriteitRij {
+  probleem: string
+  invoice_id: string
+  factuurnummer: string
 }
 
 // Handige type aliases
@@ -309,6 +387,7 @@ type locaties = Tables['locaties']
 type groepen = Tables['groepen']
 type kinderen = Tables['kinderen']
 type contracten = Tables['contracten']
+type placements = Tables['placements']
 type flex_dagen = Tables['flex_dagen']
 type groepsoverdrachten = Tables['groepsoverdrachten']
 type kind_notities = Tables['kind_notities']
@@ -322,12 +401,15 @@ type adressen = Tables['adressen']
 type contactpersonen = Tables['contactpersonen']
 type medisch_gegevens = Tables['medisch_gegevens']
 type siblings = Tables['siblings']
+type invoices = Tables['invoices']
+type invoice_lines = Tables['invoice_lines']
 
 export type Organisatie = organisaties['Row']
 export type Locatie = locaties['Row']
 export type Groep = groepen['Row']
 export type Kind = kinderen['Row']
 export type Contract = contracten['Row']
+export type Placement = placements['Row']
 export type FlexDag = flex_dagen['Row']
 export type Groepsoverdracht = groepsoverdrachten['Row']
 export type KindNotitie = kind_notities['Row']
@@ -340,6 +422,8 @@ export type Adres = adressen['Row']
 export type Contactpersoon = contactpersonen['Row']
 export type MedischGegevens = medisch_gegevens['Row']
 export type Sibling = siblings['Row']
+export type Invoice = invoices['Row']
+export type InvoiceLine = invoice_lines['Row']
 
 // Kindprofiel met alle gejoinde data
 export interface KindMetData {
