@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -12,13 +13,13 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
@@ -32,12 +33,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F3F0' }}>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="text-3xl mb-1">🐧</div>
+          <div className="flex justify-center mb-1">
+            <Image src="/penguin-logo.png" alt="Penguin Place logo" width={64} height={64} className="object-contain" />
+          </div>
           <CardTitle className="text-xl">Penguin Place</CardTitle>
-          <p className="text-sm text-slate-500">Kindplanning & Capaciteit</p>
+          <p className="text-sm" style={{ color: '#8B82A8' }}>Kindplanning & Capaciteit</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -48,7 +51,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2" style={{ border: '1px solid #C8C2D8', color: '#2D2540' }} onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 2px #9B8FCE'} onBlur={e => e.currentTarget.style.boxShadow = 'none'}
                 placeholder="naam@organisatie.nl"
               />
             </div>
@@ -59,7 +62,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2" style={{ border: '1px solid #C8C2D8', color: '#2D2540' }} onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 2px #9B8FCE'} onBlur={e => e.currentTarget.style.boxShadow = 'none'}
               />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
