@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo, useTransition } from 'react'
-import { beoordeelFlexAanvraag } from '@/app/actions/kindplanning'
+import { beoordeelFlexAanvraag, capaciteitOverrideAanmaken, capaciteitOverrideVerwijderen } from '@/app/actions/kindplanning'
+import { groepsoverdrachtPlannen, groepsoverdrachtUitvoeren } from '@/app/actions/groepsoverdrachten'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,11 +28,42 @@ type Contract = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FlexAanvraag = Record<string, any>
 
+type CapaciteitOverride = {
+  id: string
+  groep_id: string
+  max_capaciteit: number
+  start_datum: string
+  eind_datum: string
+  reden: string | null
+}
+
+type Overdracht = {
+  id: string
+  kind_id: string
+  van_groep_id: string
+  naar_groep_id: string
+  overdrachtsdatum: string
+  uitgevoerd: boolean
+  kinderen: { voornaam: string; achternaam: string } | null
+  van_groep: { naam: string } | null
+  naar_groep: { naam: string } | null
+}
+
+type KindKort = {
+  id: string
+  voornaam: string
+  tussenvoegsel: string | null
+  achternaam: string
+}
+
 interface Props {
   locaties: Locatie[]
   groepen: Groep[]
   contracten: Contract[]
   flexAanvragen: FlexAanvraag[]
+  overdrachten: Overdracht[]
+  kinderenLijst: KindKort[]
+  overrides: CapaciteitOverride[]
 }
 
 // ─── Constanten ───────────────────────────────────────────────────────────────
@@ -104,7 +136,12 @@ function parseDateUTC(s: string): number {
   return Date.UTC(y, m - 1, d)
 }
 
-function computeBezettingOpDag(contracten: Contract[], groepId: string, date: Date): number {
+function computeBezettingOpDag(
+  contracten: Contract[],
+  groepId: string,
+  date: Date,
+  overrides: CapaciteitOverride[] = []
+): { bezetting: number; effectiefMax: number | null } {
   const dateUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
   const dagIndex = date.getDay() - 1  // Mon=0 … Fri=4
   let count = 0
@@ -115,7 +152,12 @@ function computeBezettingOpDag(contracten: Contract[], groepId: string, date: Da
     if (c.einddatum && parseDateUTC(c.einddatum) < dateUTC) continue
     count++
   }
-  return count
+  // Zoek actieve override voor deze groep op deze datum
+  const activeOverride = overrides.find(o => {
+    if (o.groep_id !== groepId) return false
+    return parseDateUTC(o.start_datum) <= dateUTC && parseDateUTC(o.eind_datum) >= dateUTC
+  })
+  return { bezetting: count, effectiefMax: activeOverride ? activeOverride.max_capaciteit : null }
 }
 
 function getBezettingStijl(bezetting: number, max: number): { bg: string; text: string } {
@@ -146,10 +188,12 @@ function CapaciteitsGrid({
   locaties,
   groepen,
   contracten,
+  overrides,
 }: {
   locaties: Locatie[]
   groepen: Groep[]
   contracten: Contract[]
+  overrides: CapaciteitOverride[]
 }) {
   const [locatieId, setLocatieId] = useState<string>(locaties[0]?.id ?? '')
   const [horizonWeken, setHorizonWeken] = useState(4)
@@ -398,9 +442,10 @@ function CapaciteitsGrid({
                       const isStartDag = zoekStartdatum && key === zoekStartdatum
                       const isWeekEnd = dag.getDay() === 5
 
-                      const bez = computeBezettingOpDag(contracten, groep.id, dag)
-                      const { bg, text } = getBezettingStijl(bez, groep.max_capaciteit)
-                      const vrij = bez < groep.max_capaciteit
+                      const { bezetting: bez, effectiefMax } = computeBezettingOpDag(contracten, groep.id, dag, overrides)
+                      const effectMax = effectiefMax ?? groep.max_capaciteit
+                      const { bg, text } = getBezettingStijl(bez, effectMax)
+                      const vrij = bez < effectMax
 
                       return (
                         <td
@@ -425,8 +470,13 @@ function CapaciteitsGrid({
                               display: 'inline-block',
                             }}
                           >
-                            {bez}/{groep.max_capaciteit}
+                            {bez}/{effectMax}
                           </div>
+                          {effectiefMax !== null && (
+                            <div className="text-[9px] font-bold mt-0.5" style={{ color: '#e07b00' }} title="Capaciteit override actief">
+                              ⚙
+                            </div>
+                          )}
                           {isGefilterDag && (
                             <div
                               className="text-[10px] font-black mt-0.5"
@@ -579,10 +629,311 @@ function FlexAanvragenTab({ aanvragen }: { aanvragen: FlexAanvraag[] }) {
   )
 }
 
+// ─── Sub-component: CapaciteitOverridesTab ───────────────────────────────────
+
+const inputCls = 'w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1E1A4B] bg-white focus:outline-none focus:ring-2 focus:ring-[#EAE8FD] placeholder:text-slate-300'
+
+function CapaciteitOverridesTab({
+  groepen,
+  overrides,
+}: {
+  groepen: Groep[]
+  overrides: CapaciteitOverride[]
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [fout, setFout] = useState<string | null>(null)
+  const [formKey, setFormKey] = useState(0)
+
+  function handleAanmaken(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    setFout(null)
+    startTransition(async () => {
+      const result = await capaciteitOverrideAanmaken(fd)
+      if (result?.error) setFout(result.error)
+      else setFormKey(k => k + 1)
+    })
+  }
+
+  function handleVerwijderen(id: string) {
+    startTransition(async () => {
+      const result = await capaciteitOverrideVerwijderen(id)
+      if (result?.error) setFout(result.error)
+    })
+  }
+
+  const vandaag = new Date().toISOString().slice(0, 10)
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      {fout && (
+        <div className="bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">error</span>
+          {fout}
+        </div>
+      )}
+
+      {/* Actieve overrides lijst */}
+      {overrides.length > 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="text-sm font-bold text-[#1E1A4B]" style={{ fontFamily: 'Manrope, sans-serif' }}>Actieve overrides</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="text-left px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Groep</th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Periode</th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Nieuwe max</th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Reden</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {overrides.map((o, i) => {
+                const groep = groepen.find(g => g.id === o.groep_id)
+                return (
+                  <tr key={o.id} className="border-b border-slate-50 last:border-0"
+                    style={{ background: i % 2 === 1 ? '#fafbfc' : 'white' }}>
+                    <td className="px-6 py-4 font-semibold text-[#5B52D4]">{groep?.naam ?? '—'}</td>
+                    <td className="px-4 py-4 text-slate-600 text-xs">
+                      {new Date(o.start_datum).toLocaleDateString('nl-NL')} → {new Date(o.eind_datum).toLocaleDateString('nl-NL')}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-bold text-[#e07b00] bg-[#fff3e0] px-2 py-0.5 rounded-full text-xs">max {o.max_capaciteit}</span>
+                    </td>
+                    <td className="px-4 py-4 text-slate-500 text-xs">{o.reden ?? '—'}</td>
+                    <td className="px-4 py-4">
+                      <button
+                        onClick={() => handleVerwijderen(o.id)}
+                        disabled={isPending}
+                        className="px-3 py-1.5 text-xs font-bold rounded-xl transition-all disabled:opacity-50"
+                        style={{ background: '#fce8e8', color: '#ba1a1a' }}
+                      >
+                        Verwijderen
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm text-center py-10">
+          <span className="material-symbols-outlined text-3xl text-slate-300 block mb-2">tune</span>
+          <p className="text-sm text-slate-400">Geen actieve capaciteitsoverrides</p>
+        </div>
+      )}
+
+      {/* Nieuw override formulier */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-[#1E1A4B] mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Nieuwe override aanmaken</h3>
+        <form key={formKey} onSubmit={handleAanmaken} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Groep *</label>
+              <select name="groep_id" required className={inputCls}>
+                <option value="">— Kies groep —</option>
+                {groepen.map(g => <option key={g.id} value={g.id}>{g.naam}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Nieuwe max capaciteit *</label>
+              <input type="number" name="max_capaciteit" min="0" required className={inputCls} placeholder="bv. 8" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Startdatum *</label>
+              <input type="date" name="start_datum" required className={inputCls} defaultValue={vandaag} />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Einddatum *</label>
+              <input type="date" name="eind_datum" required className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Reden (optioneel)</label>
+            <input name="reden" className={inputCls} placeholder="bv. verbouwing, ziekte leidster..." />
+          </div>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="px-6 py-2.5 rounded-xl text-white text-sm font-bold shadow hover:opacity-90 disabled:opacity-60"
+            style={{ background: '#5B52D4' }}
+          >
+            {isPending ? 'Aanmaken…' : 'Override aanmaken'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sub-component: OverdrachtenTab ──────────────────────────────────────────
+
+function OverdrachtenTab({
+  groepen,
+  overdrachten,
+  kinderenLijst,
+}: {
+  groepen: Groep[]
+  overdrachten: Overdracht[]
+  kinderenLijst: KindKort[]
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [fout, setFout] = useState<string | null>(null)
+  const [formKey, setFormKey] = useState(0)
+  const [vanGroepId, setVanGroepId] = useState('')
+
+  const vandaag = new Date().toISOString().slice(0, 10)
+
+  function handlePlannen(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    setFout(null)
+    startTransition(async () => {
+      const result = await groepsoverdrachtPlannen(fd)
+      if (result?.error) setFout(result.error)
+      else { setFormKey(k => k + 1); setVanGroepId('') }
+    })
+  }
+
+  function handleUitvoeren(id: string) {
+    startTransition(async () => {
+      const result = await groepsoverdrachtUitvoeren(id)
+      if (result?.error) setFout(result.error)
+    })
+  }
+
+  const naarGroepen = groepen.filter(g => g.id !== vanGroepId)
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      {fout && (
+        <div className="bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">error</span>
+          {fout}
+        </div>
+      )}
+
+      {/* Geplande overdrachten */}
+      {overdrachten.length > 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ background: '#5B52D4' }}>
+              {overdrachten.length}
+            </div>
+            <h3 className="text-sm font-bold text-[#1E1A4B]" style={{ fontFamily: 'Manrope, sans-serif' }}>Geplande overdrachten</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="text-left px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Kind</th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Van groep</th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Naar groep</th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Datum</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {overdrachten.map((o, i) => (
+                <tr key={o.id} className="border-b border-slate-50 last:border-0"
+                  style={{ background: i % 2 === 1 ? '#fafbfc' : 'white' }}>
+                  <td className="px-6 py-4 font-semibold text-[#5B52D4]">
+                    {o.kinderen ? `${o.kinderen.voornaam} ${o.kinderen.achternaam}` : '—'}
+                  </td>
+                  <td className="px-4 py-4 text-slate-600">{o.van_groep?.naam ?? '—'}</td>
+                  <td className="px-4 py-4 text-slate-600">{o.naar_groep?.naam ?? '—'}</td>
+                  <td className="px-4 py-4 text-slate-600 text-xs">
+                    {new Date(o.overdrachtsdatum).toLocaleDateString('nl-NL')}
+                  </td>
+                  <td className="px-4 py-4">
+                    <button
+                      onClick={() => handleUitvoeren(o.id)}
+                      disabled={isPending}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                      style={{ background: '#006a66', color: 'white' }}
+                    >
+                      <span className="material-symbols-outlined text-sm">check</span>
+                      Uitvoeren
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm text-center py-10">
+          <span className="material-symbols-outlined text-3xl text-slate-300 block mb-2">transfer_within_a_station</span>
+          <p className="text-sm text-slate-400">Geen geplande overdrachten</p>
+        </div>
+      )}
+
+      {/* Nieuwe overdracht plannen */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-[#1E1A4B] mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Overdracht plannen</h3>
+        <form key={formKey} onSubmit={handlePlannen} className="space-y-4">
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Kind *</label>
+            <select name="kind_id" required className={inputCls}>
+              <option value="">— Kies kind —</option>
+              {kinderenLijst.map(k => (
+                <option key={k.id} value={k.id}>
+                  {k.voornaam} {k.tussenvoegsel ? k.tussenvoegsel + ' ' : ''}{k.achternaam}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Van groep *</label>
+              <select name="van_groep_id" required className={inputCls} value={vanGroepId} onChange={e => setVanGroepId(e.target.value)}>
+                <option value="">— Kies groep —</option>
+                {groepen.map(g => <option key={g.id} value={g.id}>{g.naam}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Naar groep *</label>
+              <select name="naar_groep_id" required className={inputCls}>
+                <option value="">— Kies groep —</option>
+                {naarGroepen.map(g => <option key={g.id} value={g.id}>{g.naam}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Overdrachtsdatum *</label>
+            <input type="date" name="overdrachtsdatum" required className={inputCls} min={vandaag} defaultValue={vandaag} />
+          </div>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="px-6 py-2.5 rounded-xl text-white text-sm font-bold shadow hover:opacity-90 disabled:opacity-60"
+            style={{ background: '#5B52D4' }}
+          >
+            {isPending ? 'Plannen…' : 'Overdracht plannen'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ─── Hoofd component ─────────────────────────────────────────────────────────
 
-export default function KindplanningView({ locaties, groepen, contracten, flexAanvragen }: Props) {
-  const [tab, setTab] = useState<'capaciteit' | 'flex'>('capaciteit')
+export default function KindplanningView({
+  locaties, groepen, contracten, flexAanvragen, overdrachten, kinderenLijst, overrides,
+}: Props) {
+  const [tab, setTab] = useState<'capaciteit' | 'flex' | 'overrides' | 'overdrachten'>('capaciteit')
+
+  const tabs = [
+    { key: 'capaciteit' as const, icon: 'calendar_month', label: 'Capaciteitsoverzicht' },
+    { key: 'flex' as const, icon: 'event_note', label: 'Flex aanvragen', badge: flexAanvragen.length },
+    { key: 'overrides' as const, icon: 'tune', label: 'Capaciteit' },
+    { key: 'overdrachten' as const, icon: 'transfer_within_a_station', label: 'Overdrachten', badge: overdrachten.length },
+  ]
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -596,12 +947,7 @@ export default function KindplanningView({ locaties, groepen, contracten, flexAa
           </div>
         </div>
         <div className="flex gap-1 mt-4">
-          {(
-            [
-              { key: 'capaciteit', icon: 'calendar_month', label: 'Capaciteitsoverzicht' },
-              { key: 'flex', icon: 'event_note', label: 'Flex aanvragen', badge: flexAanvragen.length },
-            ] as const
-          ).map(t => (
+          {tabs.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -614,7 +960,7 @@ export default function KindplanningView({ locaties, groepen, contracten, flexAa
             >
               <span className="material-symbols-outlined text-base">{t.icon}</span>
               {t.label}
-              {'badge' in t && t.badge > 0 && (
+              {'badge' in t && (t.badge ?? 0) > 0 && (
                 <span
                   className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
                   style={
@@ -632,10 +978,17 @@ export default function KindplanningView({ locaties, groepen, contracten, flexAa
       </header>
 
       <div className="flex-1 overflow-auto px-8 py-8">
-        {tab === 'capaciteit' ? (
-          <CapaciteitsGrid locaties={locaties} groepen={groepen} contracten={contracten} />
-        ) : (
+        {tab === 'capaciteit' && (
+          <CapaciteitsGrid locaties={locaties} groepen={groepen} contracten={contracten} overrides={overrides} />
+        )}
+        {tab === 'flex' && (
           <FlexAanvragenTab aanvragen={flexAanvragen} />
+        )}
+        {tab === 'overrides' && (
+          <CapaciteitOverridesTab groepen={groepen} overrides={overrides} />
+        )}
+        {tab === 'overdrachten' && (
+          <OverdrachtenTab groepen={groepen} overdrachten={overdrachten} kinderenLijst={kinderenLijst} />
         )}
       </div>
     </div>

@@ -26,6 +26,7 @@ export async function kindAanmaken(formData: FormData) {
   const geboortedatum = formData.get('geboortedatum') as string || null
   const verwachte_geboortedatum = formData.get('verwachte_geboortedatum') as string || null
   const geslacht    = formData.get('geslacht') as string || null
+  const bsn         = (formData.get('bsn') as string) || null
 
   // 1. Kind aanmaken
   const { data: kind, error: kindError } = await supabase
@@ -38,6 +39,7 @@ export async function kindAanmaken(formData: FormData) {
       geboortedatum:            geboortedatum || null,
       verwachte_geboortedatum:  verwachte_geboortedatum || null,
       geslacht:                 geslacht as 'man' | 'vrouw' | 'onbekend' | null,
+      bsn,
       actief: true,
     })
     .select('id')
@@ -91,6 +93,7 @@ export async function kindUpdaten(kindId: string, formData: FormData) {
     geboortedatum:           (formData.get('geboortedatum') as string) || null,
     verwachte_geboortedatum: (formData.get('verwachte_geboortedatum') as string) || null,
     geslacht:                (formData.get('geslacht') as 'man' | 'vrouw' | 'onbekend') || null,
+    bsn:                     (formData.get('bsn') as string) || null,
   }).eq('id', kindId)
 
   // Adres upsert

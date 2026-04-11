@@ -11,7 +11,15 @@ export default async function KindplanningPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [locatiesResult, groepenResult, contractenResult, flexAanvragenResult] = await Promise.all([
+  const [
+    locatiesResult,
+    groepenResult,
+    contractenResult,
+    flexAanvragenResult,
+    overdrachtenResult,
+    kinderenResult,
+    overridesResult,
+  ] = await Promise.all([
     supabase
       .from('locaties')
       .select('id, naam')
@@ -43,6 +51,31 @@ export default async function KindplanningPage() {
       `)
       .eq('status', 'aangevraagd')
       .order('datum', { ascending: true }),
+
+    // Groepsoverdrachten (nog niet uitgevoerd)
+    supabase
+      .from('groepsoverdrachten')
+      .select(`
+        id, kind_id, van_groep_id, naar_groep_id, overdrachtsdatum, uitgevoerd,
+        kinderen ( voornaam, achternaam ),
+        van_groep:groepen!van_groep_id ( naam ),
+        naar_groep:groepen!naar_groep_id ( naam )
+      `)
+      .eq('uitgevoerd', false)
+      .order('overdrachtsdatum', { ascending: true }),
+
+    // Actieve kinderen voor kind-selector
+    supabase
+      .from('kinderen')
+      .select('id, voornaam, tussenvoegsel, achternaam')
+      .eq('actief', true)
+      .order('achternaam'),
+
+    // Capaciteit overrides
+    supabase
+      .from('capaciteit_overrides')
+      .select('id, groep_id, max_capaciteit, start_datum, eind_datum, reden')
+      .order('start_datum', { ascending: true }),
   ])
 
   return (
@@ -51,6 +84,9 @@ export default async function KindplanningPage() {
       groepen={groepenResult.data ?? []}
       contracten={contractenResult.data ?? []}
       flexAanvragen={flexAanvragenResult.data ?? []}
+      overdrachten={overdrachtenResult.data ?? []}
+      kinderenLijst={kinderenResult.data ?? []}
+      overrides={overridesResult.data ?? []}
     />
   )
 }

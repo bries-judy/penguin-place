@@ -6,12 +6,13 @@ import type { WachtlijstEntry } from '@/lib/supabase/types'
 export const dynamic = 'force-dynamic'
 
 export default async function WachtlijstPage() {
-  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [wachtlijstResult, locatiesResult, groepenResult] = await Promise.all([
+  const [wachtlijstResult, locatiesResult, groepenResult, contractenResult] = await Promise.all([
     supabase
       .from('wachtlijst')
       .select(`
@@ -43,6 +44,13 @@ export default async function WachtlijstPage() {
       .select('id, naam, locatie_id, leeftijdscategorie, max_capaciteit')
       .eq('actief', true)
       .order('naam'),
+
+    // Actieve contracten voor bezettingsberekening in aanbodmodal
+    supabase
+      .from('contracten')
+      .select('id, groep_id, zorgdagen, startdatum, einddatum')
+      .eq('status', 'actief')
+      .not('groep_id', 'is', null),
   ])
 
   if (wachtlijstResult.error) console.error('Wachtlijst error:', wachtlijstResult.error)
@@ -54,6 +62,7 @@ export default async function WachtlijstPage() {
       wachtlijst={(wachtlijstResult.data ?? []) as WachtlijstEntry[]}
       locaties={locatiesResult.data ?? []}
       groepen={groepenResult.data ?? []}
+      contracten={contractenResult.data ?? []}
     />
   )
 }

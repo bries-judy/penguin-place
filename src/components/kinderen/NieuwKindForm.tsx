@@ -136,6 +136,13 @@ export default function NieuwKindForm({ locaties }: Props) {
                 )}
               </div>
 
+              {/* BSN */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">BSN (optioneel)</label>
+                <input name="bsn" className={inputCls} placeholder="123456789" maxLength={9} />
+                <p className="text-[11px] text-slate-400">9-cijferig burgerservicenummer — optioneel, kan later worden toegevoegd</p>
+              </div>
+
               <div className="pt-4 flex justify-end">
                 <button type="button" onClick={() => setStap(2)}
                   className="px-6 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 transition-all"

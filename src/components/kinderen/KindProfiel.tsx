@@ -180,6 +180,17 @@ function ContractForm({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className={labelCls}>Uurtarief (€/uur)</label>
+              <input type="number" name="uurtarief" step="0.01" min="0" defaultValue={(bestaand as unknown as Record<string,unknown>)?.uurtarief as number ?? ''} className={inputCls} placeholder="0.00" />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Maandprijs (€/maand)</label>
+              <input type="number" name="maandprijs" step="0.01" min="0" defaultValue={(bestaand as unknown as Record<string,unknown>)?.maandprijs as number ?? ''} className={inputCls} placeholder="0.00" />
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <label className={labelCls}>Einddatum (optioneel)</label>
             <input type="date" name="einddatum" defaultValue={bestaand?.einddatum ?? ''} className={inputCls} />
@@ -382,6 +393,11 @@ export default function KindProfiel({
                       </select>
                     </div>
                   </div>
+                  <div>
+                    <label className={labelCls}>BSN (optioneel)</label>
+                    <input name="bsn" defaultValue={(kind as Record<string,unknown>).bsn as string ?? ''} className={inputCls} placeholder="9-cijferig burgerservicenummer" maxLength={9} />
+                  </div>
+
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Straat</label>
@@ -414,6 +430,7 @@ export default function KindProfiel({
                     ['Leeftijd', leeftijdStr(kind.geboortedatum, kind.verwachte_geboortedatum) ?? '—'],
                     ['Geslacht', kind.geslacht === 'man' ? 'Jongen' : kind.geslacht === 'vrouw' ? 'Meisje' : kind.geslacht === 'onbekend' ? 'Onbekend' : '—'],
                     ['Adres', adres ? `${adres.straat} ${adres.huisnummer}, ${adres.postcode} ${adres.woonplaats}` : '—'],
+                    ['BSN', (kind as Record<string,unknown>).bsn ? `${((kind as Record<string,unknown>).bsn as string).slice(0,4)}·····` : '—'],
                     ['Aangemeld op', new Date(kind.aangemeld_op).toLocaleDateString('nl-NL')],
                   ].map(([k, v]) => (
                     <div key={k}>
@@ -633,6 +650,25 @@ export default function KindProfiel({
                           <p className="font-semibold mt-1">{c.uren_per_dag} uur</p>
                         </div>
                       </div>
+                      {(() => {
+                        const cr = c as unknown as Record<string, number | null>
+                        return (cr.uurtarief || cr.maandprijs) ? (
+                          <div className="mt-3 flex gap-4 text-sm border-t border-slate-50 pt-3">
+                            {cr.uurtarief ? (
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Uurtarief</p>
+                                <p className="font-semibold mt-0.5">€ {(cr.uurtarief as number).toFixed(2)} / uur</p>
+                              </div>
+                            ) : null}
+                            {cr.maandprijs ? (
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Maandprijs</p>
+                                <p className="font-semibold mt-0.5">€ {(cr.maandprijs as number).toFixed(2)} / mnd</p>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null
+                      })()}
                       {c.notities && (
                         <p className="mt-3 text-xs text-slate-400 flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-sm">info</span>{c.notities}
