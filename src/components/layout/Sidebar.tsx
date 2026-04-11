@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
@@ -23,20 +24,15 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-2 py-4 mb-2">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-          style={{ background: '#5B52D4' }}
-        >
-          <span className="material-symbols-outlined text-xl">child_care</span>
-        </div>
+        <Image src="/penguin-logo.png" alt="Penguin Place logo" width={40} height={40} className="object-contain" unoptimized />
         <div>
           <h1
             className="text-lg font-black leading-tight"
-            style={{ fontFamily: 'Manrope, sans-serif', color: '#1E1A4B' }}
+            style={{ fontFamily: 'Manrope, sans-serif', color: '#2D2540' }}
           >
             Penguin Place
           </h1>
-          <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#A09CC0' }}>
+          <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#9B8FCE' }}>
             Kinderopvang
           </p>
         </div>
@@ -53,18 +49,18 @@ export default function Sidebar() {
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-150"
               style={
                 active
-                  ? { background: 'white', color: '#5B52D4', boxShadow: '0 1px 3px rgba(91,82,212,0.12)' }
-                  : { color: '#7A7594' }
+                  ? { background: 'white', color: '#6B5B95', boxShadow: '0 1px 3px rgba(91,82,212,0.12)' }
+                  : { color: '#8B82A8' }
               }
               onMouseEnter={e => {
                 if (!active) {
-                  (e.currentTarget as HTMLElement).style.color = '#5B52D4'
-                  ;(e.currentTarget as HTMLElement).style.background = '#EAE8FD'
+                  (e.currentTarget as HTMLElement).style.color = '#6B5B95'
+                  ;(e.currentTarget as HTMLElement).style.background = '#EDE9F8'
                 }
               }}
               onMouseLeave={e => {
                 if (!active) {
-                  (e.currentTarget as HTMLElement).style.color = '#7A7594'
+                  (e.currentTarget as HTMLElement).style.color = '#8B82A8'
                   ;(e.currentTarget as HTMLElement).style.background = 'transparent'
                 }
               }}
@@ -81,13 +77,13 @@ export default function Sidebar() {
         <Link
           href="/help"
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all"
-          style={{ color: '#7A7594' }}
+          style={{ color: '#8B82A8' }}
           onMouseEnter={e => {
-            ;(e.currentTarget as HTMLElement).style.color = '#5B52D4'
-            ;(e.currentTarget as HTMLElement).style.background = '#EAE8FD'
+            ;(e.currentTarget as HTMLElement).style.color = '#6B5B95'
+            ;(e.currentTarget as HTMLElement).style.background = '#EDE9F8'
           }}
           onMouseLeave={e => {
-            ;(e.currentTarget as HTMLElement).style.color = '#7A7594'
+            ;(e.currentTarget as HTMLElement).style.color = '#8B82A8'
             ;(e.currentTarget as HTMLElement).style.background = 'transparent'
           }}
         >
