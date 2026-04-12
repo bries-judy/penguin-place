@@ -85,7 +85,12 @@ export async function locatieAanmaken(formData: FormData): Promise<{ error?: str
     .select('id')
     .single()
 
-  if (error || !locatie) return { error: error?.message ?? 'Onbekende fout' }
+  if (error || !locatie) {
+    if (error?.code === '42501' || error?.message?.includes('row-level security')) {
+      return { error: 'Je hebt geen rechten om locaties aan te maken. Neem contact op met een beheerder.' }
+    }
+    return { error: error?.message ?? 'Onbekende fout bij het aanmaken van de locatie' }
+  }
 
   revalidatePath('/dashboard/locaties')
   return { id: locatie.id }

@@ -146,24 +146,11 @@ function NavLink({ href, icon: Icon, label, active }: { href: string; icon: Luci
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
-      style={
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
         active
-          ? { background: 'white', color: '#6B5B95', boxShadow: '0 1px 3px rgba(91,82,212,0.12)' }
-          : { color: '#8B82A8' }
-      }
-      onMouseEnter={e => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.color = '#6B5B95'
-          ;(e.currentTarget as HTMLElement).style.background = '#EDE9F8'
-        }
-      }}
-      onMouseLeave={e => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.color = '#8B82A8'
-          ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-        }
-      }}
+          ? 'bg-white text-[#6B5B95] shadow-[0_1px_3px_rgba(91,82,212,0.12)]'
+          : 'text-[#8B82A8] hover:text-[#6B5B95] hover:bg-[#EDE9F8]'
+      }`}
     >
       <Icon size={20} />
       {label}
