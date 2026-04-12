@@ -3,19 +3,82 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  Clock,
+  FileText,
+  Baby,
+  FileSignature,
+  CalendarDays,
+  Receipt,
+  MapPin,
+  UsersRound,
+  UserCog,
+  Shield,
+  Settings,
+  HelpCircle,
+  type LucideIcon,
+} from 'lucide-react'
 
-const navItems = [
-  { href: '/dashboard',                icon: 'dashboard',      label: 'Dashboard' },
-  { href: '/dashboard/wachtlijst',     icon: 'pending_actions', label: 'Wachtlijst' },
-  { href: '/dashboard/kindplanning',   icon: 'calendar_month', label: 'Kindplanning' },
-  { href: '/dashboard/kinderen',       icon: 'child_care',     label: 'Kinderen' },
-  { href: '/dashboard/facturen',       icon: 'receipt_long',   label: 'Facturen' },
-  { href: '/dashboard/locaties',        icon: 'location_on',    label: 'Locaties' },
-  { href: '/rapportages',                  icon: 'bar_chart',       label: 'Rapportages' },
-  { href: '/dashboard/gebruikers',         icon: 'manage_accounts', label: 'Gebruikers' },
-  { href: '/dashboard/rollen',             icon: 'shield',          label: 'Rollen & Rechten' },
-  { href: '/instellingen',                 icon: 'settings',        label: 'Instellingen' },
+interface NavItem {
+  href: string
+  icon: LucideIcon
+  label: string
+}
+
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'Instroom',
+    items: [
+      { href: '/dashboard/wachtlijst', icon: Clock, label: 'Wachtlijst' },
+      { href: '/dashboard/aanbiedingen', icon: FileText, label: 'Aanbiedingen' },
+    ],
+  },
+  {
+    label: 'Kinderen & Contracten',
+    items: [
+      { href: '/dashboard/kinderen', icon: Baby, label: 'Kinderen' },
+      { href: '/dashboard/contracten', icon: FileSignature, label: 'Contracten' },
+    ],
+  },
+  {
+    label: 'Planning & Capaciteit',
+    items: [
+      { href: '/dashboard/kindplanning', icon: CalendarDays, label: 'Planning' },
+    ],
+  },
+  {
+    label: 'Financiën',
+    items: [
+      { href: '/dashboard/facturen', icon: Receipt, label: 'Facturen' },
+    ],
+  },
+  {
+    label: 'Structuur',
+    items: [
+      { href: '/dashboard/locaties', icon: MapPin, label: 'Locaties' },
+      { href: '/dashboard/groepen', icon: UsersRound, label: 'Groepen' },
+    ],
+  },
+  {
+    label: 'Beheer',
+    items: [
+      { href: '/dashboard/gebruikers', icon: UserCog, label: 'Gebruikers' },
+      { href: '/dashboard/rollen', icon: Shield, label: 'Rollen & rechten' },
+      { href: '/dashboard/instellingen', icon: Settings, label: 'Instellingen' },
+    ],
+  },
 ]
+
+function isActive(pathname: string, href: string) {
+  if (href === '/dashboard') return pathname === '/dashboard'
+  return pathname === href || pathname.startsWith(href + '/')
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -41,59 +104,69 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-1">
-        {navItems.map(item => {
-          const active = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-150"
-              style={
-                active
-                  ? { background: 'white', color: '#6B5B95', boxShadow: '0 1px 3px rgba(91,82,212,0.12)' }
-                  : { color: '#8B82A8' }
-              }
-              onMouseEnter={e => {
-                if (!active) {
-                  (e.currentTarget as HTMLElement).style.color = '#6B5B95'
-                  ;(e.currentTarget as HTMLElement).style.background = '#EDE9F8'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!active) {
-                  (e.currentTarget as HTMLElement).style.color = '#8B82A8'
-                  ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                }
-              }}
+      {/* Dashboard home */}
+      <nav className="flex flex-col gap-1">
+        <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" active={isActive(pathname, '/dashboard')} />
+      </nav>
+
+      {/* Grouped nav */}
+      <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
+        {navGroups.map((group) => (
+          <div key={group.label} className="mt-4 first:mt-2">
+            <p
+              className="px-4 pb-1 text-[10px] uppercase tracking-widest font-bold"
+              style={{ color: '#8B82A8' }}
             >
-              <span className="material-symbols-outlined text-xl">{item.icon}</span>
-              {item.label}
-            </Link>
-          )
-        })}
+              {group.label}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  active={isActive(pathname, item.href)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Help */}
       <div className="pt-4" style={{ borderTop: '1px solid #E8E4DF' }}>
-        <Link
-          href="/help"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all"
-          style={{ color: '#8B82A8' }}
-          onMouseEnter={e => {
-            ;(e.currentTarget as HTMLElement).style.color = '#6B5B95'
-            ;(e.currentTarget as HTMLElement).style.background = '#EDE9F8'
-          }}
-          onMouseLeave={e => {
-            ;(e.currentTarget as HTMLElement).style.color = '#8B82A8'
-            ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-          }}
-        >
-          <span className="material-symbols-outlined text-xl">help</span>
-          Help Center
-        </Link>
+        <NavLink href="/help" icon={HelpCircle} label="Help Center" active={isActive(pathname, '/help')} />
       </div>
     </aside>
+  )
+}
+
+function NavLink({ href, icon: Icon, label, active }: { href: string; icon: LucideIcon; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
+      style={
+        active
+          ? { background: 'white', color: '#6B5B95', boxShadow: '0 1px 3px rgba(91,82,212,0.12)' }
+          : { color: '#8B82A8' }
+      }
+      onMouseEnter={e => {
+        if (!active) {
+          (e.currentTarget as HTMLElement).style.color = '#6B5B95'
+          ;(e.currentTarget as HTMLElement).style.background = '#EDE9F8'
+        }
+      }}
+      onMouseLeave={e => {
+        if (!active) {
+          (e.currentTarget as HTMLElement).style.color = '#8B82A8'
+          ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+        }
+      }}
+    >
+      <Icon size={20} />
+      {label}
+    </Link>
   )
 }
