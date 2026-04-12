@@ -1,8 +1,4 @@
-'use client'
-
-import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Clock,
@@ -19,6 +15,7 @@ import {
   HelpCircle,
   type LucideIcon,
 } from 'lucide-react'
+import NavLink from './NavLink'
 
 interface NavItem {
   href: string
@@ -75,14 +72,7 @@ const navGroups: NavGroup[] = [
   },
 ]
 
-function isActive(pathname: string, href: string) {
-  if (href === '/dashboard') return pathname === '/dashboard'
-  return pathname === href || pathname.startsWith(href + '/')
-}
-
 export default function Sidebar() {
-  const pathname = usePathname()
-
   return (
     <aside
       className="h-screen w-64 fixed left-0 top-0 z-50 flex flex-col p-4 gap-2 border-r"
@@ -106,7 +96,7 @@ export default function Sidebar() {
 
       {/* Dashboard home */}
       <nav className="flex flex-col gap-1">
-        <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" active={isActive(pathname, '/dashboard')} />
+        <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
       </nav>
 
       {/* Grouped nav */}
@@ -126,7 +116,6 @@ export default function Sidebar() {
                   href={item.href}
                   icon={item.icon}
                   label={item.label}
-                  active={isActive(pathname, item.href)}
                 />
               ))}
             </div>
@@ -136,24 +125,8 @@ export default function Sidebar() {
 
       {/* Help */}
       <div className="pt-4" style={{ borderTop: '1px solid #E8E4DF' }}>
-        <NavLink href="/help" icon={HelpCircle} label="Help Center" active={isActive(pathname, '/help')} />
+        <NavLink href="/help" icon={HelpCircle} label="Help Center" />
       </div>
     </aside>
-  )
-}
-
-function NavLink({ href, icon: Icon, label, active }: { href: string; icon: LucideIcon; label: string; active: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
-        active
-          ? 'bg-white text-[#6B5B95] shadow-[0_1px_3px_rgba(91,82,212,0.12)]'
-          : 'text-[#8B82A8] hover:text-[#6B5B95] hover:bg-[#EDE9F8]'
-      }`}
-    >
-      <Icon size={20} />
-      {label}
-    </Link>
   )
 }
