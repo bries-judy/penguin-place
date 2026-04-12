@@ -32,11 +32,11 @@ export default async function KindplanningPage() {
       .eq('actief', true)
       .order('naam'),
 
+    // Lees actieve placements via contracten (placements is nu de bron voor groepskoppelingen)
     supabase
       .from('contracten')
-      .select('id, groep_id, zorgdagen, startdatum, einddatum')
-      .eq('status', 'actief')
-      .not('groep_id', 'is', null),
+      .select('id, zorgdagen, placements(id, groep_id, startdatum, einddatum)')
+      .eq('status', 'actief'),
 
     supabase
       .from('flex_dagen')
@@ -78,11 +78,25 @@ export default async function KindplanningPage() {
       .order('start_datum', { ascending: true }),
   ])
 
+  // Verplat contracten → placements naar het formaat dat KindplanningView verwacht:
+  // { id, groep_id, zorgdagen, startdatum, einddatum } — één item per placement.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contractenVoorBezetting = (contractenResult.data ?? []).flatMap((c: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (c.placements ?? []).map((p: any) => ({
+      id:         p.id,
+      groep_id:   p.groep_id,
+      zorgdagen:  c.zorgdagen,
+      startdatum: p.startdatum,
+      einddatum:  p.einddatum,
+    }))
+  )
+
   return (
     <KindplanningView
       locaties={locatiesResult.data ?? []}
       groepen={groepenResult.data ?? []}
-      contracten={contractenResult.data ?? []}
+      contracten={contractenVoorBezetting}
       flexAanvragen={flexAanvragenResult.data ?? []}
       overdrachten={overdrachtenResult.data ?? []}
       kinderenLijst={kinderenResult.data ?? []}

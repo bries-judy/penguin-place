@@ -29,45 +29,51 @@
 }
 
 :root {
-  /* Penguin Place — Stitch kleurpalet */
-  --pp-primary: #004d64;
-  --pp-primary-container: #006684;
+  /* Penguin Place — Brand kleurpalet */
+  --pp-primary: #9B8FCE;           /* Lavender — Primary */
+  --pp-primary-container: #EDE9F8; /* Licht lavendel container */
   --pp-on-primary: #ffffff;
-  --pp-primary-fixed: #bee9ff;
-  --pp-secondary: #006a66;
-  --pp-secondary-container: #8df4ed;
-  --pp-tertiary: #703700;
-  --pp-tertiary-fixed-dim: #ffb783;
+  --pp-primary-fixed: #F0ECF9;
+
+  --pp-brand: #6B5B95;             /* Purple — Brand (donker) */
+
+  --pp-secondary: #A8D5BA;         /* Mint — Accent */
+  --pp-secondary-container: #D8F0E4;
+  --pp-tertiary: #FFB5A7;          /* Peach — Warmth */
+  --pp-tertiary-fixed-dim: #FFD8D1;
+
   --pp-error: #ba1a1a;
-  --pp-surface: #f7fafb;
-  --pp-surface-container: #ebeeef;
-  --pp-surface-container-low: #f1f4f5;
-  --pp-surface-container-high: #e5e9ea;
-  --pp-surface-container-highest: #e0e3e4;
-  --pp-on-surface: #181c1d;
-  --pp-on-surface-variant: #3f484d;
-  --pp-outline: #70787e;
-  --pp-outline-variant: #bfc8cd;
+
+  --pp-surface: #F5F3F0;           /* Cream — Achtergrond */
+  --pp-surface-container: #EDE9E4;
+  --pp-surface-container-low: #F2F0EC;
+  --pp-surface-container-high: #E8E4DE;
+  --pp-surface-container-highest: #E2DDD7;
+
+  --pp-on-surface: #2D2540;        /* Donkerpaars voor tekst */
+  --pp-on-surface-variant: #5A5278;
+  --pp-outline: #8B82A8;
+  --pp-outline-variant: #C8C2D8;
 
   /* shadcn compat */
-  --background: #f7fafb;
-  --foreground: #181c1d;
+  --background: #F5F3F0;
+  --foreground: #2D2540;
   --card: #ffffff;
-  --card-foreground: #181c1d;
+  --card-foreground: #2D2540;
   --popover: #ffffff;
-  --popover-foreground: #181c1d;
-  --primary: #004d64;
+  --popover-foreground: #2D2540;
+  --primary: #9B8FCE;
   --primary-foreground: #ffffff;
-  --secondary: #f1f4f5;
-  --secondary-foreground: #181c1d;
-  --muted: #f1f4f5;
-  --muted-foreground: #70787e;
-  --accent: #e0e3e4;
-  --accent-foreground: #181c1d;
+  --secondary: #EDE9F8;
+  --secondary-foreground: #2D2540;
+  --muted: #F2F0EC;
+  --muted-foreground: #7A7594;
+  --accent: #EDE9F8;
+  --accent-foreground: #2D2540;
   --destructive: #ba1a1a;
-  --border: #e0e3e4;
-  --input: #e0e3e4;
-  --ring: #006684;
+  --border: #C8C2D8;
+  --input: #C8C2D8;
+  --ring: #9B8FCE;
   --radius: 0.75rem;
 }
 
@@ -76,7 +82,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-[#f7fafb] text-[#181c1d];
+    @apply bg-[#F5F3F0] text-[#2D2540];
     font-family: 'Inter', sans-serif;
   }
 }
@@ -89,11 +95,11 @@
 
 /* Pulse animatie voor beschikbare groepen */
 .pulse-available {
-  box-shadow: 0 0 0 0 rgba(0, 106, 102, 0.3);
+  box-shadow: 0 0 0 0 rgba(168, 213, 186, 0.4);
   animation: pulse-green 2.5s infinite;
 }
 @keyframes pulse-green {
-  0% { box-shadow: 0 0 0 0 rgba(0, 106, 102, 0.3); }
-  70% { box-shadow: 0 0 0 8px rgba(0, 106, 102, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 106, 102, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(168, 213, 186, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(168, 213, 186, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(168, 213, 186, 0); }
 }

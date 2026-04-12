@@ -45,24 +45,36 @@ export default async function WachtlijstPage() {
       .eq('actief', true)
       .order('naam'),
 
-    // Actieve contracten voor bezettingsberekening in aanbodmodal
+    // Actieve contracten + placements voor bezettingsberekening in aanbodmodal
     supabase
       .from('contracten')
-      .select('id, groep_id, zorgdagen, startdatum, einddatum')
-      .eq('status', 'actief')
-      .not('groep_id', 'is', null),
+      .select('id, zorgdagen, placements(id, groep_id, startdatum, einddatum)')
+      .eq('status', 'actief'),
   ])
 
   if (wachtlijstResult.error) console.error('Wachtlijst error:', wachtlijstResult.error)
   if (locatiesResult.error)   console.error('Locaties error:',   locatiesResult.error)
   if (groepenResult.error)    console.error('Groepen error:',    groepenResult.error)
 
+  // Verplat contracten → placements naar { id, groep_id, zorgdagen, startdatum, einddatum }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contractenVoorBezetting = (contractenResult.data ?? []).flatMap((c: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (c.placements ?? []).map((p: any) => ({
+      id:         p.id,
+      groep_id:   p.groep_id,
+      zorgdagen:  c.zorgdagen,
+      startdatum: p.startdatum,
+      einddatum:  p.einddatum,
+    }))
+  )
+
   return (
     <WachtlijstDashboard
       wachtlijst={(wachtlijstResult.data ?? []) as WachtlijstEntry[]}
       locaties={locatiesResult.data ?? []}
       groepen={groepenResult.data ?? []}
-      contracten={contractenResult.data ?? []}
+      contracten={contractenVoorBezetting}
     />
   )
 }
