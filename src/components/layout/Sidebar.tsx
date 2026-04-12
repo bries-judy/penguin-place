@@ -10,7 +10,7 @@ const navItems = [
   { href: '/dashboard/kindplanning',   icon: 'calendar_month', label: 'Kindplanning' },
   { href: '/dashboard/kinderen',       icon: 'child_care',     label: 'Kinderen' },
   { href: '/dashboard/facturen',       icon: 'receipt_long',   label: 'Facturen' },
-  { href: '/locaties',                 icon: 'location_on',    label: 'Locaties' },
+  { href: '/dashboard/locaties',        icon: 'location_on',    label: 'Locaties' },
   { href: '/rapportages',              icon: 'bar_chart',      label: 'Rapportages' },
   { href: '/instellingen',             icon: 'settings',       label: 'Instellingen' },
 ]
