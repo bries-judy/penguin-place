@@ -10,7 +10,7 @@ import { LOCATIE_TYPE_LABELS } from '@/types/locaties'
 
 interface Manager {
   id: string
-  profiles: { voornaam: string; achternaam: string } | null
+  profiles: { naam: string } | null
 }
 
 interface LocatieRij {
@@ -43,7 +43,7 @@ const ALLE_STATUSSEN: LocatieStatus[] = ['actief', 'in_opbouw', 'inactief']
 
 function managerNaam(m: Manager | null): string {
   if (!m?.profiles) return '—'
-  return [m.profiles.voornaam, m.profiles.achternaam].filter(Boolean).join(' ')
+  return m.profiles.naam || '—'
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

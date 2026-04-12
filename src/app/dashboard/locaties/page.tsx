@@ -14,7 +14,7 @@ export default async function LocatiesPage() {
     .select(`
       id, naam, code, type, status, plaats,
       telefoon, email,
-      locatiemanager:locatiemanager_id ( id, profiles ( voornaam, achternaam ) ),
+      locatiemanager:locatiemanager_id ( id, profiles ( naam ) ),
       groepen ( id )
     `)
     .is('deleted_at', null)
