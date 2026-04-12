@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "penguin-place",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd '/Users/judy/Documents/Claude/Projects/Penguin place/penguin-place' && npm run dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}
