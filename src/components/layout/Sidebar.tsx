@@ -11,8 +11,10 @@ const navItems = [
   { href: '/dashboard/kinderen',       icon: 'child_care',     label: 'Kinderen' },
   { href: '/dashboard/facturen',       icon: 'receipt_long',   label: 'Facturen' },
   { href: '/dashboard/locaties',        icon: 'location_on',    label: 'Locaties' },
-  { href: '/rapportages',              icon: 'bar_chart',      label: 'Rapportages' },
-  { href: '/instellingen',             icon: 'settings',       label: 'Instellingen' },
+  { href: '/rapportages',                  icon: 'bar_chart',       label: 'Rapportages' },
+  { href: '/dashboard/gebruikers',         icon: 'manage_accounts', label: 'Gebruikers' },
+  { href: '/dashboard/rollen',             icon: 'shield',          label: 'Rollen & Rechten' },
+  { href: '/instellingen',                 icon: 'settings',        label: 'Instellingen' },
 ]
 
 export default function Sidebar() {
