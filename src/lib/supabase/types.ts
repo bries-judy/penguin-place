@@ -8,6 +8,12 @@ export type WachtlijstStatus = 'wachtend' | 'aangeboden' | 'geplaatst' | 'verval
 export type AanbiedingStatus = 'openstaand' | 'geaccepteerd' | 'geweigerd' | 'verlopen'
 export type Geslacht = 'man' | 'vrouw' | 'onbekend'
 export type ContactpersoonRol = 'ouder1' | 'ouder2' | 'voogd' | 'noodcontact'
+export type Contractvorm = 'schoolweken' | 'standaard' | 'super_flexibel' | 'flexibel'
+export type DagdeelEnum = 'ochtend' | 'middag' | 'hele_dag' | 'na_school' | 'voor_school' | 'studiedag_bso'
+export type TariefStatus = 'concept' | 'actief' | 'vervallen'
+export type KortingsTypeEnum = 'percentage' | 'vast_bedrag'
+export type KortingsGrondslag = 'op_uurtarief' | 'op_maandprijs' | 'op_uren_per_maand'
+export type ContractStatusNieuw = 'concept' | 'actief' | 'te_beeindigen' | 'beeindigd' | 'geannuleerd' | 'facturatie_fout'
 
 export interface Database {
   public: {
@@ -334,6 +340,128 @@ export interface Database {
         Insert: Omit<invoice_lines['Row'], 'id' | 'created_at'>
         Update: Partial<invoice_lines['Row']>
       }
+      merken: {
+        Row: {
+          id: string
+          organisatie_id: string
+          code: string
+          naam: string
+          beschrijving: string | null
+          actief: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<merken['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<merken['Row']>
+      }
+      merk_locaties: {
+        Row: {
+          merk_id: string
+          locatie_id: string
+        }
+        Insert: merk_locaties['Row']
+        Update: Partial<merk_locaties['Row']>
+      }
+      contracttypen: {
+        Row: {
+          id: string
+          organisatie_id: string
+          merk_id: string
+          naam: string
+          code: string
+          opvangtype: Opvangtype
+          contractvorm: Contractvorm
+          beschrijving: string | null
+          min_uren_maand: number | null
+          min_dagdelen_week: number | null
+          geldig_in_vakanties: boolean
+          opvang_op_inschrijving: boolean
+          annuleringstermijn_uren: number | null
+          actief: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<contracttypen['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<contracttypen['Row']>
+      }
+      tarief_sets: {
+        Row: {
+          id: string
+          organisatie_id: string
+          merk_id: string
+          contract_type_id: string
+          jaar: number
+          opvangtype: Opvangtype
+          uurtarief: number
+          max_overheidsuurprijs: number
+          ingangsdatum: string
+          status: TariefStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<tarief_sets['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<tarief_sets['Row']>
+      }
+      dagdeel_configuraties: {
+        Row: {
+          id: string
+          organisatie_id: string
+          locatie_id: string | null
+          groep_id: string | null
+          dagdeel_enum: DagdeelEnum
+          starttijd: string
+          eindtijd: string
+          uren: number
+          ingangsdatum: string
+          created_at: string
+        }
+        Insert: Omit<dagdeel_configuraties['Row'], 'id' | 'created_at'>
+        Update: Partial<dagdeel_configuraties['Row']>
+      }
+      feestdagen: {
+        Row: {
+          id: string
+          organisatie_id: string
+          datum: string
+          naam: string
+          locatie_id: string | null
+          created_at: string
+        }
+        Insert: Omit<feestdagen['Row'], 'id' | 'created_at'>
+        Update: Partial<feestdagen['Row']>
+      }
+      kortings_typen: {
+        Row: {
+          id: string
+          organisatie_id: string
+          code: string
+          naam: string
+          type_enum: KortingsTypeEnum
+          waarde: number
+          grondslag_enum: KortingsGrondslag
+          max_kortingsbedrag: number | null
+          stapelbaar: boolean
+          vereist_documentatie: boolean
+          actief: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<kortings_typen['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<kortings_typen['Row']>
+      }
+      kind_contract_kortingen: {
+        Row: {
+          id: string
+          kind_contract_id: string
+          kortings_type_id: string
+          startdatum: string
+          einddatum: string | null
+          berekend_bedrag: number
+          created_at: string
+        }
+        Insert: Omit<kind_contract_kortingen['Row'], 'id' | 'created_at'>
+        Update: Partial<kind_contract_kortingen['Row']>
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -359,6 +487,12 @@ export interface Database {
       wachtlijst_status: WachtlijstStatus
       aanbieding_status: AanbiedingStatus
       factuur_status: FactuurStatus
+      contractvorm: Contractvorm
+      dagdeel_enum: DagdeelEnum
+      tarief_status: TariefStatus
+      kortings_type_enum: KortingsTypeEnum
+      kortings_grondslag: KortingsGrondslag
+      contract_status_nieuw: ContractStatusNieuw
     }
   }
 }
@@ -403,6 +537,14 @@ type medisch_gegevens = Tables['medisch_gegevens']
 type siblings = Tables['siblings']
 type invoices = Tables['invoices']
 type invoice_lines = Tables['invoice_lines']
+type merken = Tables['merken']
+type merk_locaties = Tables['merk_locaties']
+type contracttypen = Tables['contracttypen']
+type tarief_sets = Tables['tarief_sets']
+type dagdeel_configuraties = Tables['dagdeel_configuraties']
+type feestdagen = Tables['feestdagen']
+type kortings_typen = Tables['kortings_typen']
+type kind_contract_kortingen = Tables['kind_contract_kortingen']
 
 export type Organisatie = organisaties['Row']
 export type Locatie = locaties['Row']
@@ -424,6 +566,14 @@ export type MedischGegevens = medisch_gegevens['Row']
 export type Sibling = siblings['Row']
 export type Invoice = invoices['Row']
 export type InvoiceLine = invoice_lines['Row']
+export type Merk = merken['Row']
+export type MerkLocatie = merk_locaties['Row']
+export type ContractTypeNieuw = contracttypen['Row']
+export type TariefSet = tarief_sets['Row']
+export type DagdeelConfiguratie = dagdeel_configuraties['Row']
+export type Feestdag = feestdagen['Row']
+export type KortingsType = kortings_typen['Row']
+export type KindContractKorting = kind_contract_kortingen['Row']
 
 // Kindprofiel met alle gejoinde data
 export interface KindMetData {
