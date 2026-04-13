@@ -12,8 +12,7 @@ interface Props {
 
 interface GebruikerResultaat {
   id: string
-  voornaam: string
-  achternaam: string
+  naam: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -66,7 +65,7 @@ function UserPicker({
   }, [])
 
   function kies(g: GebruikerResultaat) {
-    onSelect(g.id, `${g.voornaam} ${g.achternaam}`)
+    onSelect(g.id, g.naam)
     setZoek('')
     setResultaten([])
     setToonLijst(false)
@@ -109,9 +108,9 @@ function UserPicker({
                     className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                   >
                     <div className="w-7 h-7 rounded-full bg-[#bee9ff]/60 flex items-center justify-center text-[#004d64] font-bold text-xs shrink-0">
-                      {g.voornaam[0]}{g.achternaam[0]}
+                      {g.naam[0]?.toUpperCase()}
                     </div>
-                    {g.voornaam} {g.achternaam}
+                    {g.naam}
                   </button>
                 ))
               ) : zoek.trim() ? (

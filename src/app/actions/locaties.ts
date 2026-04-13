@@ -448,7 +448,7 @@ export async function groepDeactiveren(id: string): Promise<{ error?: string }> 
 
 // ─── Gebruikers zoeken (voor user picker) ────────────────────────────────────
 
-export async function zoekGebruikers(query: string): Promise<{ id: string; voornaam: string; achternaam: string }[]> {
+export async function zoekGebruikers(query: string): Promise<{ id: string; naam: string }[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
@@ -466,9 +466,9 @@ export async function zoekGebruikers(query: string): Promise<{ id: string; voorn
 
   const { data } = await supabase
     .from('profiles')
-    .select('id, voornaam, achternaam')
+    .select('id, naam')
     .eq('organisatie_id', profile.organisatie_id)
-    .or(`voornaam.ilike.%${query}%,achternaam.ilike.%${query}%`)
+    .ilike('naam', `%${query}%`)
     .limit(8)
 
   return data ?? []

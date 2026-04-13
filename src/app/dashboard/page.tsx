@@ -77,7 +77,7 @@ export default async function DashboardPage() {
 
     safeQuery(
       supabase.from('profiles')
-        .select('voornaam')
+        .select('naam')
         .eq('id', user.id)
         .maybeSingle()
     ),
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
   const wachtlijstActief  = wachtlijst.filter((w: any) => w.status === 'wachtend').length
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const voornaam = (profileResult.data as any)?.voornaam ?? null
+  const voornaam = (profileResult.data as any)?.naam ?? null
 
   return (
     <DashboardOverzicht
