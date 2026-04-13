@@ -23,7 +23,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Supabase unreachable — allow login page, redirect others
+  }
 
   // Bescherm alle routes behalve /login
   if (!user && !request.nextUrl.pathname.startsWith('/login')) {
