@@ -20,7 +20,7 @@ CREATE TABLE public.dagdeel_configuraties (
   organisatie_id  UUID NOT NULL REFERENCES public.organisaties(id) ON DELETE CASCADE,
   locatie_id      UUID REFERENCES public.locaties(id),
   groep_id        UUID REFERENCES public.groepen(id),
-  dagdeel         public.dagdeel_enum NOT NULL,
+  dagdeel_enum    public.dagdeel_enum NOT NULL,
   starttijd       TIME NOT NULL,
   eindtijd        TIME NOT NULL,
   uren            DECIMAL(4,2) GENERATED ALWAYS AS (
@@ -108,7 +108,7 @@ CREATE POLICY "feestdagen_write_beheerder" ON public.feestdagen
 -- ─── Seed data (template) ──────────────────────────────────
 -- Pas <ORG_ID> en <LOCATIE_ID> aan voor je organisatie:
 --
--- INSERT INTO public.dagdeel_configuraties (organisatie_id, locatie_id, dagdeel, starttijd, eindtijd, ingangsdatum)
+-- INSERT INTO public.dagdeel_configuraties (organisatie_id, locatie_id, dagdeel_enum, starttijd, eindtijd, ingangsdatum)
 -- VALUES
 --   ('<ORG_ID>', '<LOCATIE_ID>', 'ochtend',     '07:30', '13:15', '2026-01-01'),
 --   ('<ORG_ID>', '<LOCATIE_ID>', 'middag',      '12:30', '18:00', '2026-01-01'),
