@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 export default function GlobalError({
   error,
   unstable_retry,
@@ -7,6 +9,10 @@ export default function GlobalError({
   error: Error & { digest?: string }
   unstable_retry: () => void
 }) {
+  useEffect(() => {
+    console.error('[GlobalError]', error.message, error.digest, error)
+  }, [error])
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-8"
@@ -19,9 +25,12 @@ export default function GlobalError({
         >
           Er is iets misgegaan
         </h2>
-        <p className="text-sm text-slate-500 mb-6">
+        <p className="text-sm text-slate-500 mb-4">
           Er is een onverwachte fout opgetreden. Probeer het opnieuw of neem
           contact op met ondersteuning als het probleem aanhoudt.
+        </p>
+        <p className="text-xs text-slate-400 mb-4 font-mono select-all">
+          {error.digest ?? error.message ?? 'onbekende fout'}
         </p>
         <button
           onClick={() => unstable_retry()}

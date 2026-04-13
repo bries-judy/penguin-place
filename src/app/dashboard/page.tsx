@@ -4,6 +4,20 @@ import DashboardOverzicht from '@/components/dashboard/CapaciteitsDashboard'
 
 export const dynamic = 'force-dynamic'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function safeQuery(promise: Promise<any>) {
+  try {
+    const result = await promise
+    if (result.error) {
+      console.error('[Dashboard query error]', result.error.message ?? result.error)
+    }
+    return result
+  } catch (err) {
+    console.error('[Dashboard query threw]', err)
+    return { data: null, error: err }
+  }
+}
+
 export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
@@ -12,8 +26,8 @@ export default async function DashboardPage() {
   try {
     const { data } = await supabase.auth.getUser()
     user = data.user
-  } catch {
-    // Supabase unreachable
+  } catch (err) {
+    console.error('[Dashboard] getUser threw:', err)
   }
   if (!user) redirect('/login')
 
@@ -28,33 +42,45 @@ export default async function DashboardPage() {
     wachtlijstResult,
     profileResult,
   ] = await Promise.all([
-    supabase.from('contracten')
-      .select('id')
-      .eq('status', 'actief')
-      .lte('startdatum', vandaag)
-      .or(`einddatum.is.null,einddatum.gte.${vandaag}`),
+    safeQuery(
+      supabase.from('contracten')
+        .select('id')
+        .eq('status', 'actief')
+        .lte('startdatum', vandaag)
+        .or(`einddatum.is.null,einddatum.gte.${vandaag}`)
+    ),
 
-    supabase.from('contracten')
-      .select('id, vorige_contract_id')
-      .eq('status', 'concept'),
+    safeQuery(
+      supabase.from('contracten')
+        .select('id, vorige_contract_id')
+        .eq('status', 'concept')
+    ),
 
-    supabase.from('groepen')
-      .select('max_capaciteit')
-      .eq('actief', true),
+    safeQuery(
+      supabase.from('groepen')
+        .select('max_capaciteit')
+        .eq('actief', true)
+    ),
 
-    supabase.from('kinderen')
-      .select('id')
-      .eq('actief', false)
-      .gte('datum_uitschrijving', dertigDagenGeleden),
+    safeQuery(
+      supabase.from('kinderen')
+        .select('id')
+        .eq('actief', false)
+        .gte('datum_uitschrijving', dertigDagenGeleden)
+    ),
 
-    supabase.from('wachtlijst')
-      .select('id, status')
-      .neq('status', 'geannuleerd'),
+    safeQuery(
+      supabase.from('wachtlijst')
+        .select('id, status')
+        .neq('status', 'geannuleerd')
+    ),
 
-    supabase.from('profiles')
-      .select('voornaam')
-      .eq('id', user.id)
-      .maybeSingle(),
+    safeQuery(
+      supabase.from('profiles')
+        .select('voornaam')
+        .eq('id', user.id)
+        .maybeSingle()
+    ),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
