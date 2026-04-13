@@ -22,7 +22,7 @@ import { LOCATIE_TYPE_LABELS } from '@/types/locaties'
 
 interface ManagerProfiel {
   id: string
-  profiles: { voornaam: string; achternaam: string } | null
+  profiles: { naam: string } | null
 }
 
 export interface LocatieMetRelaties extends Locatie {

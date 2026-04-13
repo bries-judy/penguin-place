@@ -18,9 +18,9 @@ interface GebruikerResultaat {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function managerNaam(profiel: { voornaam: string; achternaam: string } | null | undefined): string {
+function managerNaam(profiel: { naam: string } | null | undefined): string {
   if (!profiel) return '—'
-  return [profiel.voornaam, profiel.achternaam].filter(Boolean).join(' ')
+  return profiel.naam || '—'
 }
 
 // ─── UserPicker sub-component ────────────────────────────────────────────────
