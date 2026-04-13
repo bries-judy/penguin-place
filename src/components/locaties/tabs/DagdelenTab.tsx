@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getDagdeelConfiguraties, dagdeelConfigBijwerken } from '@/app/actions/dagdelen'
+import FeestdagenBeheer from '@/components/locaties/FeestdagenBeheer'
 import type { Groep } from '@/types/locaties'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -400,6 +401,9 @@ export default function DagdelenTab({ locatieId, groepen }: Props) {
           </div>
         </div>
       )}
+
+      {/* ── Feestdagen ─── */}
+      <FeestdagenBeheer locatieId={locatieId} />
 
       {/* Toast */}
       {toast && (
