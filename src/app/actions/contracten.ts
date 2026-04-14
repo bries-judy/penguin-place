@@ -68,6 +68,13 @@ export async function contractAanmaken(kindId: string, formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
+  // Haal organisatie_id op van de ingelogde gebruiker (consistent met RLS get_organisatie_id())
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: profile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  if (!profile?.organisatie_id) return { error: 'Geen organisatie gevonden' }
+  const organisatieId = profile.organisatie_id
+
   const locatieId      = formData.get('locatie_id') as string
   const contractTypeId = formData.get('contract_type_id') as string
   const groepId        = (formData.get('groep_id') as string) || null
@@ -171,23 +178,15 @@ export async function contractAanmaken(kindId: string, formData: FormData) {
 
   // 10. Placement aanmaken als groep geselecteerd
   if (groepId && nieuwContract) {
-    const { data: kind } = await supabase
-      .from('kinderen')
-      .select('organisatie_id')
-      .eq('id', kindId)
-      .single()
-
-    if (kind) {
-      const { error: placementError } = await supabase.from('placements').insert({
-        organisatie_id: kind.organisatie_id,
-        kind_id:        kindId,
-        contract_id:    nieuwContract.id,
-        groep_id:       groepId,
-        startdatum,
-        einddatum,
-      })
-      if (placementError) return { error: placementError.message }
-    }
+    const { error: placementError } = await supabase.from('placements').insert({
+      organisatie_id: organisatieId,
+      kind_id:        kindId,
+      contract_id:    nieuwContract.id,
+      groep_id:       groepId,
+      startdatum,
+      einddatum,
+    })
+    if (placementError) return { error: placementError.message }
   }
 
   revalidatePath(`/dashboard/kinderen/${kindId}`)
@@ -199,6 +198,11 @@ export async function contractAanmaken(kindId: string, formData: FormData) {
 export async function contractAanmakenLegacy(kindId: string, formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: profile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  if (!profile?.organisatie_id) return { error: 'Geen organisatie gevonden' }
 
   const zorgdagen  = formData.getAll('zorgdagen').map(Number)
   const groepId    = (formData.get('groep_id') as string) || null
@@ -228,23 +232,15 @@ export async function contractAanmakenLegacy(kindId: string, formData: FormData)
   if (error) return { error: error.message }
 
   if (groepId && nieuwContract) {
-    const { data: kind } = await supabase
-      .from('kinderen')
-      .select('organisatie_id')
-      .eq('id', kindId)
-      .single()
-
-    if (kind) {
-      const { error: placementError } = await supabase.from('placements').insert({
-        organisatie_id: kind.organisatie_id,
-        kind_id:        kindId,
-        contract_id:    nieuwContract.id,
-        groep_id:       groepId,
-        startdatum,
-        einddatum,
-      })
-      if (placementError) return { error: placementError.message }
-    }
+    const { error: placementError } = await supabase.from('placements').insert({
+      organisatie_id: profile.organisatie_id,
+      kind_id:        kindId,
+      contract_id:    nieuwContract.id,
+      groep_id:       groepId,
+      startdatum,
+      einddatum,
+    })
+    if (placementError) return { error: placementError.message }
   }
 
   revalidatePath(`/dashboard/kinderen/${kindId}`)
@@ -257,10 +253,15 @@ export async function contractActiveren(contractId: string, kindId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: profile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  const organisatieId = profile?.organisatie_id
+
   // Contract ophalen voor facturatie-event payload
   const { data: contract } = await supabase
     .from('contracten')
-    .select('*, kinderen(organisatie_id)')
+    .select('*')
     .eq('id', contractId)
     .single()
 
@@ -277,7 +278,6 @@ export async function contractActiveren(contractId: string, kindId: string) {
   await genereerPlanning(contractId)
 
   // Facturatie-event loggen
-  const organisatieId = contract.kinderen?.organisatie_id
   if (organisatieId) {
     // Haal kortingen op
     const { data: kortingen } = await supabase
@@ -332,6 +332,11 @@ export async function contractActiveren(contractId: string, kindId: string) {
 export async function contractWijzigen(oudContractId: string, kindId: string, formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: userProfile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  if (!userProfile?.organisatie_id) return { error: 'Geen organisatie gevonden' }
 
   // Oud contract ophalen
   const { data: oud } = await supabase
@@ -459,22 +464,14 @@ export async function contractWijzigen(oudContractId: string, kindId: string, fo
 
       // Placement aanmaken
       if (groepId && nieuwContract) {
-        const { data: kind } = await supabase
-          .from('kinderen')
-          .select('organisatie_id')
-          .eq('id', kindId)
-          .single()
-
-        if (kind) {
-          await supabase.from('placements').insert({
-            organisatie_id: kind.organisatie_id,
-            kind_id:        kindId,
-            contract_id:    nieuwContract.id,
-            groep_id:       groepId,
-            startdatum:     ingangsdatum,
-            einddatum,
-          })
-        }
+        await supabase.from('placements').insert({
+          organisatie_id: userProfile.organisatie_id,
+          kind_id:        kindId,
+          contract_id:    nieuwContract.id,
+          groep_id:       groepId,
+          startdatum:     ingangsdatum,
+          einddatum,
+        })
       }
 
       if (nieuwContract) {
@@ -511,22 +508,14 @@ export async function contractWijzigen(oudContractId: string, kindId: string, fo
   if (error) return { error: error.message }
 
   if (groepId && nieuwContract) {
-    const { data: kind } = await supabase
-      .from('kinderen')
-      .select('organisatie_id')
-      .eq('id', kindId)
-      .single()
-
-    if (kind) {
-      await supabase.from('placements').insert({
-        organisatie_id: kind.organisatie_id,
-        kind_id:        kindId,
-        contract_id:    nieuwContract.id,
-        groep_id:       groepId,
-        startdatum:     ingangsdatum,
-        einddatum,
-      })
-    }
+    await supabase.from('placements').insert({
+      organisatie_id: userProfile.organisatie_id,
+      kind_id:        kindId,
+      contract_id:    nieuwContract.id,
+      groep_id:       groepId,
+      startdatum:     ingangsdatum,
+      einddatum,
+    })
   }
 
   if (nieuwContract) {
@@ -543,12 +532,10 @@ export async function contractBeeindigen(contractId: string, kindId: string, ein
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
-  // Contract ophalen voor event
-  const { data: contract } = await supabase
-    .from('contracten')
-    .select('*, kinderen(organisatie_id)')
-    .eq('id', contractId)
-    .single()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: profile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  const organisatieId = profile?.organisatie_id
 
   await supabase.from('contracten')
     .update({ status: 'beëindigd', einddatum })
@@ -577,7 +564,6 @@ export async function contractBeeindigen(contractId: string, kindId: string, ein
     .gt('datum', einddatum)
 
   // Beëindiging-event loggen
-  const organisatieId = contract?.kinderen?.organisatie_id
   if (organisatieId) {
     await supabase.from('contract_events').insert({
       organisatie_id: organisatieId,
