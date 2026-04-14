@@ -17,7 +17,7 @@ Lees `docs/architecture/conventions.md` voor alle naamgevings- en codepatronen.
 
 ## Migratie-status
 
-Laatste genummerd: `014_locaties_seed.sql` (+ timestamped `20260412*`). Volgende: `015_xxx.sql`.
+Laatste genummerd: `019_fix_rls_circulair.sql` (+ timestamped `20260412*`). Volgende: `020_xxx.sql`.
 
 ## Belangrijke paden
 
