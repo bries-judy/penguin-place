@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import ContractTypenBeheer from './ContractTypenBeheer'
 import MerkenBeheer from './MerkenBeheer'
 import TariefBeheer, { type TariefSetRij } from './TariefBeheer'
+import KortingsBeheer, { type KortingsTypeRij } from './KortingsBeheer'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,11 +45,12 @@ interface Props {
   contracttypen: ContractTypeRij[]
   locaties: LocatieOptie[]
   tariefsets: TariefSetRij[]
+  kortingstypen: KortingsTypeRij[]
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ContractenInhoud({ merken, contracttypen, locaties, tariefsets }: Props) {
+export default function ContractenInhoud({ merken, contracttypen, locaties, tariefsets, kortingstypen }: Props) {
   const merkenOpties = merken.map(m => ({ id: m.id, naam: m.naam, code: m.code }))
   const contracttypenOpties = contracttypen.map(ct => ({
     id: ct.id,
@@ -72,6 +74,7 @@ export default function ContractenInhoud({ merken, contracttypen, locaties, tari
           <TabsTrigger value="contracttypen" className="pb-3">Contracttypen</TabsTrigger>
           <TabsTrigger value="tarieven" className="pb-3">Tarieven</TabsTrigger>
           <TabsTrigger value="merken" className="pb-3">Merken</TabsTrigger>
+          <TabsTrigger value="kortingen" className="pb-3">Kortingen</TabsTrigger>
         </TabsList>
 
         <div className="pt-6">
@@ -83,6 +86,9 @@ export default function ContractenInhoud({ merken, contracttypen, locaties, tari
           </TabsContent>
           <TabsContent value="merken">
             <MerkenBeheer merken={merken} locaties={locaties} />
+          </TabsContent>
+          <TabsContent value="kortingen">
+            <KortingsBeheer kortingstypen={kortingstypen} />
           </TabsContent>
         </div>
       </Tabs>

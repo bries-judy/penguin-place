@@ -39,12 +39,20 @@ export default async function ContractenPage() {
     .is('deleted_at', null)
     .order('jaar', { ascending: false })
 
+  // Kortingstypes
+  const { data: kortingstypen } = await supabase
+    .from('kortings_typen')
+    .select('*')
+    .is('deleted_at', null)
+    .order('naam')
+
   return (
     <ContractenInhoud
       merken={merken ?? []}
       contracttypen={contracttypen ?? []}
       locaties={locaties ?? []}
       tariefsets={tariefsets ?? []}
+      kortingstypen={kortingstypen ?? []}
     />
   )
 }
