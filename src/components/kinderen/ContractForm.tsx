@@ -235,7 +235,12 @@ export default function ContractForm({ kindId, locaties, groepen, bestaand, onCl
         ? await contractWijzigen(bestaand.id, kindId, fd)
         : await contractAanmaken(kindId, fd)
       if (result?.error) setError(result.error)
-      else onClose()
+      else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const warning = (result as any)?.warning
+        if (warning) setError(warning)
+        onClose()
+      }
     })
   }
 

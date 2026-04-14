@@ -68,6 +68,11 @@ export async function contractAanmaken(kindId: string, formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: userProfile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  if (!userProfile?.organisatie_id) return { error: 'Geen organisatie gevonden' }
+
   const locatieId      = formData.get('locatie_id') as string
   const contractTypeId = formData.get('contract_type_id') as string
   const groepId        = (formData.get('groep_id') as string) || null
@@ -87,7 +92,7 @@ export async function contractAanmaken(kindId: string, formData: FormData) {
   // 1. Resolve merk via locatie
   const merkResult = await getMerkVoorLocatie(locatieId)
   if (merkResult.error) return { error: merkResult.error }
-  const { merkId, organisatieId } = merkResult.data!
+  const { merkId } = merkResult.data!
 
   // 2. Haal contracttype op, valideer dat het bij het merk hoort
   const { data: contractType, error: ctError } = await supabase
@@ -170,20 +175,23 @@ export async function contractAanmaken(kindId: string, formData: FormData) {
   }
 
   // 10. Placement aanmaken als groep geselecteerd
+  let placementWarning: string | undefined
   if (groepId && nieuwContract) {
     const { error: placementError } = await supabase.from('placements').insert({
-      organisatie_id: organisatieId,
+      organisatie_id: userProfile.organisatie_id,
       kind_id:        kindId,
       contract_id:    nieuwContract.id,
       groep_id:       groepId,
       startdatum,
       einddatum,
     })
-    if (placementError) return { error: placementError.message }
+    if (placementError) {
+      placementWarning = `Contract aangemaakt, maar groepskoppeling mislukt: ${placementError.message}`
+    }
   }
 
   revalidatePath(`/dashboard/kinderen/${kindId}`)
-  return { success: true }
+  return { success: true, warning: placementWarning }
 }
 
 // ─── Legacy contract aanmaken (backward compat) ─────────────────────────────
@@ -192,14 +200,16 @@ export async function contractAanmakenLegacy(kindId: string, formData: FormData)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Niet ingelogd' }
+  const { data: userProfile } = await supabase.from('profiles').select('organisatie_id').eq('id', user.id).single()
+  if (!userProfile?.organisatie_id) return { error: 'Geen organisatie gevonden' }
+
   const locatieIdLegacy = formData.get('locatie_id') as string
   const zorgdagen  = formData.getAll('zorgdagen').map(Number)
   const groepId    = (formData.get('groep_id') as string) || null
   const startdatum = formData.get('startdatum') as string
   const einddatum  = (formData.get('einddatum') as string) || null
-
-  // Haal organisatie_id op via locatie (matcht met check constraint)
-  const { data: locatieData } = await supabase.from('locaties').select('organisatie_id').eq('id', locatieIdLegacy).single()
 
   const { data: nieuwContract, error } = await supabase
     .from('contracten')
@@ -223,9 +233,9 @@ export async function contractAanmakenLegacy(kindId: string, formData: FormData)
 
   if (error) return { error: error.message }
 
-  if (groepId && nieuwContract && locatieData) {
+  if (groepId && nieuwContract) {
     const { error: placementError } = await supabase.from('placements').insert({
-      organisatie_id: locatieData.organisatie_id,
+      organisatie_id: userProfile.organisatie_id,
       kind_id:        kindId,
       contract_id:    nieuwContract.id,
       groep_id:       groepId,
@@ -457,7 +467,7 @@ export async function contractWijzigen(oudContractId: string, kindId: string, fo
       // Placement aanmaken
       if (groepId && nieuwContract) {
         await supabase.from('placements').insert({
-          organisatie_id: merkResult.data.organisatieId,
+          organisatie_id: userProfile.organisatie_id,
           kind_id:        kindId,
           contract_id:    nieuwContract.id,
           groep_id:       groepId,
@@ -500,16 +510,8 @@ export async function contractWijzigen(oudContractId: string, kindId: string, fo
   if (error) return { error: error.message }
 
   if (groepId && nieuwContract) {
-    // Gebruik organisatie_id van de locatie (moet matchen met CHECK constraint)
-    const { data: locatieData } = await supabase
-      .from('locaties')
-      .select('organisatie_id')
-      .eq('id', locatieId)
-      .single()
-    const placementOrgId = locatieData?.organisatie_id ?? userProfile.organisatie_id
-
     await supabase.from('placements').insert({
-      organisatie_id: placementOrgId,
+      organisatie_id: userProfile.organisatie_id,
       kind_id:        kindId,
       contract_id:    nieuwContract.id,
       groep_id:       groepId,
