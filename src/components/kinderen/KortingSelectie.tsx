@@ -15,6 +15,7 @@ interface KortingsType {
   max_kortingsbedrag: number | null
   stapelbaar: boolean
   vereist_documentatie: boolean
+  actief: boolean
 }
 
 export interface SelectedKorting {
