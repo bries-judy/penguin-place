@@ -9,19 +9,18 @@ import { berekenKorting } from './kortingen'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Resolve merk_id via merk_locaties koppeltabel */
+/** Resolve merk_id via locaties.merk_id direct FK */
 export async function getMerkVoorLocatie(locatieId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
   const { data, error } = await supabase
-    .from('merk_locaties')
+    .from('locaties')
     .select('merk_id, merken(id, naam)')
-    .eq('locatie_id', locatieId)
-    .limit(1)
+    .eq('id', locatieId)
     .single()
 
-  if (error || !data) return { error: 'Geen merk gevonden voor deze locatie' }
+  if (error || !data || !data.merk_id) return { error: 'Geen merk gevonden voor deze locatie. Koppel eerst een merk aan deze locatie via Instellingen.' }
   return { data: { merkId: data.merk_id, merkNaam: data.merken?.naam ?? '' } }
 }
 
