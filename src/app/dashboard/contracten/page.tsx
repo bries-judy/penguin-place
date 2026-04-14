@@ -32,11 +32,19 @@ export default async function ContractenPage() {
     .is('deleted_at', null)
     .order('naam')
 
+  // Tariefsets met contracttype-info
+  const { data: tariefsets } = await supabase
+    .from('tariefsets')
+    .select('*, contracttype:contracttypen(naam, code, opvangtype)')
+    .is('deleted_at', null)
+    .order('jaar', { ascending: false })
+
   return (
     <ContractenInhoud
       merken={merken ?? []}
       contracttypen={contracttypen ?? []}
       locaties={locaties ?? []}
+      tariefsets={tariefsets ?? []}
     />
   )
 }

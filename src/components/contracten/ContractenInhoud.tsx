@@ -3,6 +3,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import ContractTypenBeheer from './ContractTypenBeheer'
 import MerkenBeheer from './MerkenBeheer'
+import TariefBeheer, { type TariefSetRij } from './TariefBeheer'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,12 +43,20 @@ interface Props {
   merken: MerkRij[]
   contracttypen: ContractTypeRij[]
   locaties: LocatieOptie[]
+  tariefsets: TariefSetRij[]
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ContractenInhoud({ merken, contracttypen, locaties }: Props) {
+export default function ContractenInhoud({ merken, contracttypen, locaties, tariefsets }: Props) {
   const merkenOpties = merken.map(m => ({ id: m.id, naam: m.naam, code: m.code }))
+  const contracttypenOpties = contracttypen.map(ct => ({
+    id: ct.id,
+    naam: ct.naam,
+    code: ct.code,
+    merk_id: ct.merk_id,
+    opvangtype: ct.opvangtype,
+  }))
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -55,18 +64,22 @@ export default function ContractenInhoud({ merken, contracttypen, locaties }: Pr
         Contractbeheer
       </h1>
       <p className="text-sm text-slate-500 mb-6">
-        Beheer merken en contracttypen voor je organisatie.
+        Beheer merken, contracttypen en tarieven voor je organisatie.
       </p>
 
       <Tabs defaultValue="contracttypen">
         <TabsList variant="line" className="border-b border-slate-200 w-full rounded-none pb-0 h-auto">
           <TabsTrigger value="contracttypen" className="pb-3">Contracttypen</TabsTrigger>
+          <TabsTrigger value="tarieven" className="pb-3">Tarieven</TabsTrigger>
           <TabsTrigger value="merken" className="pb-3">Merken</TabsTrigger>
         </TabsList>
 
         <div className="pt-6">
           <TabsContent value="contracttypen">
             <ContractTypenBeheer contracttypen={contracttypen} merken={merkenOpties} />
+          </TabsContent>
+          <TabsContent value="tarieven">
+            <TariefBeheer tariefsets={tariefsets} merken={merkenOpties} contracttypen={contracttypenOpties} />
           </TabsContent>
           <TabsContent value="merken">
             <MerkenBeheer merken={merken} locaties={locaties} />
