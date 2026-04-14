@@ -40,7 +40,7 @@ export default async function KindProfielPage({
     (supabase as any).from('medisch_gegevens').select('*').eq('kind_id', id).maybeSingle(),
 
     supabase.from('contracten')
-      .select('*, locaties(naam), groepen(naam)')
+      .select('*, locaties(naam), groepen(naam), contracttypen(naam, merken(naam))')
       .eq('kind_id', id)
       .order('startdatum', { ascending: false }),
 

@@ -6,7 +6,8 @@ import {
   kindUpdaten, medischUpdaten, contactpersoonOpslaan,
   kindUitschrijven, notitieToevoegen,
 } from '@/app/actions/kinderen'
-import { contractAanmaken, contractActiveren, contractWijzigen } from '@/app/actions/contracten'
+import { contractActiveren } from '@/app/actions/contracten'
+import ContractForm from './ContractForm'
 import type { Kind, Adres, Contactpersoon, MedischGegevens, Contract, ContractStatus, Opvangtype } from '@/lib/supabase/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -14,6 +15,7 @@ import type { Kind, Adres, Contactpersoon, MedischGegevens, Contract, ContractSt
 interface ContractMetRefs extends Contract {
   locaties: { naam: string } | null
   groepen:  { naam: string } | null
+  contracttypen?: { naam: string; merken?: { naam: string } | null } | null
 }
 
 interface Props {
@@ -39,11 +41,14 @@ const OPVANG_LABEL: Record<Opvangtype, string> = {
 }
 
 const STATUS_CFG: Record<ContractStatus, { label: string; bg: string; text: string }> = {
-  actief:       { label: 'Actief',      bg: 'bg-[#8df4ed]/40', text: 'text-[#006a66]' },
-  concept:      { label: 'Concept',     bg: 'bg-slate-100',    text: 'text-slate-500' },
-  opgeschort:   { label: 'Opgeschort',  bg: 'bg-[#ffb783]/30', text: 'text-[#703700]' },
-  'beëindigd':  { label: 'Beëindigd',   bg: 'bg-slate-50',     text: 'text-slate-400' },
-  wachtlijst:   { label: 'Wachtlijst',  bg: 'bg-[#bee9ff]/60', text: 'text-[#004d64]' },
+  actief:           { label: 'Actief',          bg: 'bg-[#8df4ed]/40', text: 'text-[#006a66]' },
+  concept:          { label: 'Concept',         bg: 'bg-slate-100',    text: 'text-slate-500' },
+  opgeschort:       { label: 'Opgeschort',      bg: 'bg-[#ffb783]/30', text: 'text-[#703700]' },
+  'beëindigd':      { label: 'Beëindigd',       bg: 'bg-slate-50',     text: 'text-slate-400' },
+  wachtlijst:       { label: 'Wachtlijst',      bg: 'bg-[#bee9ff]/60', text: 'text-[#004d64]' },
+  te_beeindigen:    { label: 'Te beëindigen',   bg: 'bg-[#ffb783]/30', text: 'text-[#703700]' },
+  geannuleerd:      { label: 'Geannuleerd',     bg: 'bg-slate-50',     text: 'text-slate-400' },
+  facturatie_fout:  { label: 'Facturatie fout',  bg: 'bg-[#ba1a1a]/15', text: 'text-[#ba1a1a]' },
 }
 
 function volledigeNaam(k: Pick<Kind, 'voornaam' | 'tussenvoegsel' | 'achternaam'>) {
@@ -66,156 +71,7 @@ function leeftijdStr(geboortedatum: string | null, verwacht: string | null) {
 const inputCls = 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-[#181c1d] bg-white focus:outline-none focus:ring-2 focus:ring-[#006684]/30 placeholder:text-slate-300'
 const labelCls = 'text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5'
 
-// ─── Contractformulier ────────────────────────────────────────────────────────
-
-function ContractForm({
-  kindId, locaties, groepen, bestaand, onClose,
-}: {
-  kindId: string
-  locaties: Props['locaties']
-  groepen:  Props['groepen']
-  bestaand?: ContractMetRefs
-  onClose: () => void
-}) {
-  const [isPending, startTransition] = useTransition()
-  const [selectedLocatie, setSelectedLocatie] = useState(bestaand?.locatie_id ?? locaties[0]?.id ?? '')
-  const [error, setError] = useState<string | null>(null)
-
-  const locGroepen = groepen.filter(g => g.locatie_id === selectedLocatie)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    setError(null)
-    startTransition(async () => {
-      const result = bestaand
-        ? await contractWijzigen(bestaand.id, kindId, fd)
-        : await contractAanmaken(kindId, fd)
-      if (result?.error) setError(result.error)
-      else onClose()
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
-          <h3 className="text-lg font-black text-[#004d64]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            {bestaand ? 'Contractwijziging' : 'Nieuw contract'}
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400">
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {bestaand && (
-            <div className="bg-[#ffb783]/15 border border-[#ffb783]/40 rounded-xl p-3 text-xs text-[#703700] flex items-start gap-2">
-              <span className="material-symbols-outlined text-sm mt-0.5">info</span>
-              Het bestaande contract wordt beëindigd per dag vóór de nieuwe ingangsdatum. Een nieuw concept wordt aangemaakt.
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <label className={labelCls}>Locatie *</label>
-            <select name="locatie_id" value={selectedLocatie} onChange={e => setSelectedLocatie(e.target.value)} className={inputCls} required>
-              {locaties.map(l => <option key={l.id} value={l.id}>{l.naam}</option>)}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className={labelCls}>Groep</label>
-            <select name="groep_id" className={inputCls}>
-              <option value="">— Nog niet toegewezen —</option>
-              {locGroepen.map(g => <option key={g.id} value={g.id}>{g.naam}</option>)}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className={labelCls}>Opvangtype *</label>
-              <select name="opvangtype" defaultValue={bestaand?.opvangtype ?? 'kdv'} className={inputCls} required>
-                <option value="kdv">KDV</option>
-                <option value="bso">BSO</option>
-                <option value="peuteropvang">Peuteropvang</option>
-                <option value="gastouder">Gastouder</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelCls}>Contracttype *</label>
-              <select name="contracttype" defaultValue={bestaand?.contracttype ?? 'vast'} className={inputCls} required>
-                <option value="vast">Vast</option>
-                <option value="flex">Flex</option>
-                <option value="tijdelijk">Tijdelijk</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className={labelCls}>Zorgdagen *</label>
-            <div className="flex gap-2">
-              {DAG_LABELS.map((d, i) => (
-                <label key={i} className="flex flex-col items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="zorgdagen"
-                    value={i}
-                    defaultChecked={bestaand?.zorgdagen.includes(i)}
-                    className="w-4 h-4 accent-[#004d64]"
-                  />
-                  <span className="text-xs font-bold text-slate-500">{d}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className={labelCls}>Uren per dag *</label>
-              <input type="number" name="uren_per_dag" step="0.5" min="1" max="12" defaultValue={bestaand?.uren_per_dag ?? 8} className={inputCls} required />
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelCls}>{bestaand ? 'Ingangsdatum *' : 'Startdatum *'}</label>
-              <input type="date" name="startdatum" defaultValue={bestaand?.startdatum} className={inputCls} required />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className={labelCls}>Uurtarief (€/uur)</label>
-              <input type="number" name="uurtarief" step="0.01" min="0" defaultValue={(bestaand as unknown as Record<string,unknown>)?.uurtarief as number ?? ''} className={inputCls} placeholder="0.00" />
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelCls}>Maandprijs (€/maand)</label>
-              <input type="number" name="maandprijs" step="0.01" min="0" defaultValue={(bestaand as unknown as Record<string,unknown>)?.maandprijs as number ?? ''} className={inputCls} placeholder="0.00" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className={labelCls}>Einddatum (optioneel)</label>
-            <input type="date" name="einddatum" defaultValue={bestaand?.einddatum ?? ''} className={inputCls} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className={labelCls}>Notities</label>
-            <textarea name="notities" rows={2} defaultValue={bestaand?.notities ?? ''} className={`${inputCls} resize-none`} placeholder="Interne opmerkingen..." />
-          </div>
-
-          {error && <p className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/10 px-4 py-2 rounded-xl">{error}</p>}
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50">Annuleren</button>
-            <button type="submit" disabled={isPending}
-              className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 disabled:opacity-60"
-              style={{ background: 'linear-gradient(to right, #004d64, #006684)' }}>
-              {isPending ? 'Opslaan…' : bestaand ? 'Wijziging doorvoeren' : 'Contract aanmaken'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
+// ContractForm is geïmporteerd uit ./ContractForm
 
 // ─── Uitschrijven Modal ───────────────────────────────────────────────────────
 
@@ -278,8 +134,8 @@ export default function KindProfiel({
   const [isPending, startTransition]   = useTransition()
 
   const naam = volledigeNaam(kind)
-  const actieveContracten = contracten.filter(c => c.status === 'actief' || c.status === 'concept')
-  const historiekContracten = contracten.filter(c => c.status === 'beëindigd' || c.status === 'opgeschort')
+  const actieveContracten = contracten.filter(c => ['actief', 'concept', 'te_beeindigen', 'facturatie_fout'].includes(c.status))
+  const historiekContracten = contracten.filter(c => ['beëindigd', 'opgeschort', 'geannuleerd'].includes(c.status))
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'algemeen',   label: 'Algemeen',   icon: 'person' },
@@ -605,6 +461,12 @@ export default function KindProfiel({
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Actief / Concept</p>
                 {actieveContracten.map(c => {
                   const cfg = STATUS_CFG[c.status]
+                  const cr = c as unknown as Record<string, unknown>
+                  const dd = (cr.dagdelen ?? {}) as Record<string, string>
+                  const hasDagdelen = Object.keys(dd).length > 0
+                  const ctNaam = (cr.contracttypen as { naam?: string } | null)?.naam
+                  const merkNaam = ((cr.contracttypen as { merken?: { naam?: string } } | null)?.merken)?.naam
+
                   return (
                     <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
                       <div className="flex items-start justify-between mb-4">
@@ -612,11 +474,15 @@ export default function KindProfiel({
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
                             <span className="text-xs text-slate-400 font-semibold">{OPVANG_LABEL[c.opvangtype]}</span>
+                            {ctNaam && <span className="text-xs text-[#004d64] font-semibold">{ctNaam}</span>}
                           </div>
-                          <p className="font-bold text-[#181c1d]">{c.locaties?.naam ?? '—'}{c.groepen ? ` · ${c.groepen.naam}` : ''}</p>
+                          <p className="font-bold text-[#181c1d]">
+                            {merkNaam && <span className="text-slate-400 font-semibold">{merkNaam} · </span>}
+                            {c.locaties?.naam ?? '—'}{c.groepen ? ` · ${c.groepen.naam}` : ''}
+                          </p>
                         </div>
                         <div className="flex gap-2">
-                          {c.status === 'concept' && (
+                          {(c.status === 'concept' || c.status === 'facturatie_fout') && (
                             <button onClick={() => startTransition(async () => { await contractActiveren(c.id, kind.id) })}
                               className="px-3 py-1.5 text-xs font-bold bg-[#006a66] text-white rounded-lg hover:opacity-90">
                               Activeren
@@ -650,20 +516,45 @@ export default function KindProfiel({
                           <p className="font-semibold mt-1">{c.uren_per_dag} uur</p>
                         </div>
                       </div>
+
+                      {/* Dagdelen per dag */}
+                      {hasDagdelen && (
+                        <div className="mt-3 border-t border-slate-50 pt-3">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Dagdelen</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(dd).sort(([a], [b]) => Number(a) - Number(b)).map(([dag, dagdeel]) => (
+                              <span key={dag} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-xs font-medium text-slate-600">
+                                <span className="font-bold">{DAG_LABELS[Number(dag)]}</span>
+                                {dagdeel.replace('_', ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Prijzen */}
                       {(() => {
-                        const cr = c as unknown as Record<string, number | null>
-                        return (cr.uurtarief || cr.maandprijs) ? (
+                        const bruto = cr.maandprijs_bruto as number | null
+                        const netto = cr.maandprijs_netto as number | null
+                        const tarief = cr.uurtarief as number | null
+                        return (tarief || bruto) ? (
                           <div className="mt-3 flex gap-4 text-sm border-t border-slate-50 pt-3">
-                            {cr.uurtarief ? (
+                            {tarief ? (
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Uurtarief</p>
-                                <p className="font-semibold mt-0.5">€ {(cr.uurtarief as number).toFixed(2)} / uur</p>
+                                <p className="font-semibold mt-0.5">€ {tarief.toFixed(2)} / uur</p>
                               </div>
                             ) : null}
-                            {cr.maandprijs ? (
+                            {bruto ? (
                               <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Maandprijs</p>
-                                <p className="font-semibold mt-0.5">€ {(cr.maandprijs as number).toFixed(2)} / mnd</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bruto / mnd</p>
+                                <p className="font-semibold mt-0.5">€ {bruto.toFixed(2)}</p>
+                              </div>
+                            ) : null}
+                            {netto !== null && netto !== bruto ? (
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Netto / mnd</p>
+                                <p className="font-bold mt-0.5 text-[#006a66]">€ {netto.toFixed(2)}</p>
                               </div>
                             ) : null}
                           </div>

@@ -2,7 +2,7 @@ export type Opvangtype = 'kdv' | 'bso' | 'peuteropvang' | 'gastouder'
 export type FactuurStatus = 'draft' | 'sent' | 'paid' | 'overdue'
 export type Leeftijdscategorie = 'baby' | 'dreumes' | 'peuter' | 'bso'
 export type Contracttype = 'vast' | 'flex' | 'tijdelijk'
-export type ContractStatus = 'actief' | 'wachtlijst' | 'beëindigd' | 'concept' | 'opgeschort'
+export type ContractStatus = 'actief' | 'wachtlijst' | 'beëindigd' | 'concept' | 'opgeschort' | 'te_beeindigen' | 'geannuleerd' | 'facturatie_fout'
 export type AppRole = 'klantadviseur' | 'vestigingsmanager' | 'personeelsplanner' | 'regiomanager' | 'directie' | 'beheerder'
 export type WachtlijstStatus = 'wachtend' | 'aangeboden' | 'geplaatst' | 'vervallen' | 'geannuleerd'
 export type AanbiedingStatus = 'openstaand' | 'geaccepteerd' | 'geweigerd' | 'verlopen'
@@ -101,6 +101,10 @@ export interface Database {
           ondertekend_op: string | null
           ondertekend_door: string | null
           notities: string | null
+          contract_type_id: string | null
+          dagdelen: Record<string, string>
+          maandprijs_bruto: number | null
+          maandprijs_netto: number | null
           vorige_contract_id: string | null
           created_at: string
           updated_at: string
@@ -449,6 +453,18 @@ export interface Database {
         Insert: Omit<kortings_typen['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<kortings_typen['Row']>
       }
+      contract_events: {
+        Row: {
+          id: string
+          organisatie_id: string
+          contract_id: string
+          event_type: string
+          payload: Record<string, unknown>
+          created_at: string
+        }
+        Insert: Omit<contract_events['Row'], 'id' | 'created_at'>
+        Update: Partial<contract_events['Row']>
+      }
       kind_contract_kortingen: {
         Row: {
           id: string
@@ -544,6 +560,7 @@ type tarief_sets = Tables['tarief_sets']
 type dagdeel_configuraties = Tables['dagdeel_configuraties']
 type feestdagen = Tables['feestdagen']
 type kortings_typen = Tables['kortings_typen']
+type contract_events = Tables['contract_events']
 type kind_contract_kortingen = Tables['kind_contract_kortingen']
 
 export type Organisatie = organisaties['Row']
@@ -573,6 +590,7 @@ export type TariefSet = tarief_sets['Row']
 export type DagdeelConfiguratie = dagdeel_configuraties['Row']
 export type Feestdag = feestdagen['Row']
 export type KortingsType = kortings_typen['Row']
+export type ContractEvent = contract_events['Row']
 export type KindContractKorting = kind_contract_kortingen['Row']
 
 // Kindprofiel met alle gejoinde data
