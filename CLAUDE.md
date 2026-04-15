@@ -12,12 +12,21 @@ Lees `docs/architecture/conventions.md` voor alle naamgevings- en codepatronen.
 - **Routes**: kebab-case (`/dashboard/locaties/nieuw`)
 - **Types**: PascalCase (`Locatie`, `GroepStatus`). Constanten: `UPPER_SNAKE_CASE`
 - **Soft deletes**: `deleted_at = now()`, nooit fysiek verwijderen. Queries filteren altijd `.is('deleted_at', null)`
-- **RLS**: elke tabel. Helpers: `get_organisatie_id()`, `has_role()`, `has_any_role()`, `get_toegankelijke_locatie_ids()`
+- **RLS**: elke tabel. Helpers: `get_organisatie_id()`, `has_role()`, `has_any_role()`, `get_toegankelijke_locatie_ids()`, `is_ouder()`, `is_staff()`, `get_ouder_kind_ids()`
 - **Migrations**: immutable — nooit kolommen hernoemen/verwijderen, alleen `ADD COLUMN IF NOT EXISTS`
 
 ## Migratie-status
 
-Laatste genummerd: `023_contract_events.sql` (+ timestamped `20260412*`). Volgende: `024_xxx.sql`.
+Laatste genummerd: `028_seed_ouder_test.sql` (+ timestamped `20260412*`). Volgende: `029_xxx.sql`.
+
+## Ouder-entiteit (Fase 0 Ouderportaal)
+
+- `ouder_profielen`: first-class entiteit, apart van `profiles` (staff). id = auth.users.id.
+- `ouder_kind`: autorisatie-spine (many-to-many ouder ↔ kind). Elke ouder-RLS-policy filtert via `get_ouder_kind_ids()`.
+- User type in `auth.users.raw_app_meta_data.user_type` ('staff' | 'ouder'). `handle_new_user()` trigger maakt conditioneel `profiles` of `ouder_profielen` aan.
+- `get_organisatie_id()` retourneert NULL voor ouders → staff-policies evalueren false → ouders zien data alleen via additieve ouder-policies.
+- Admin client: `src/lib/supabase/admin.ts` (service_role key, alleen server-side).
+- Supabase Storage bucket `media` (private). Pad: `{org_id}/{kind_id}/{dagverslag_id}/{uuid}.{ext}`.
 
 ## Belangrijke paden
 

@@ -35,6 +35,7 @@ export function bkrRatio(leeftijdscategorie: Groep['leeftijdscategorie']): numbe
     case 'dreumes': return 5
     case 'peuter': return 8
     case 'bso': return 10
+    default: return 8
   }
 }
 
@@ -49,6 +50,7 @@ export function categorieLabel(cat: Groep['leeftijdscategorie']): string {
     case 'dreumes': return 'Dreumes (12-24m)'
     case 'peuter': return 'Peuter (24-48m)'
     case 'bso': return 'BSO (4-12j)'
+    default: return String(cat)
   }
 }
 

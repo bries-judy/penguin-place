@@ -301,9 +301,9 @@ export default function FacturenDashboard({
                     <td className="px-4 py-3">
                       <span
                         className="text-xs font-bold rounded-full px-2.5 py-1"
-                        style={STATUS_STYLE[factuur.status]}
+                        style={STATUS_STYLE[factuur.status as FactuurStatus]}
                       >
-                        {STATUS_LABEL[factuur.status]}
+                        {STATUS_LABEL[factuur.status as FactuurStatus]}
                       </span>
                     </td>
                     <td className="px-4 py-3">
