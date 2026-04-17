@@ -281,7 +281,10 @@ export async function ouderDetailOphalen(ouderId: string): Promise<OuderDetail |
     .maybeSingle()
   if (!ouder) return null
 
-  // 2. Kinderen + contracten via ouder_kind
+  // 2. Kinderen + contracten via ouder_kind.
+  //    NB: dagdelen_configuraties-tabel bestaat niet per se in elke DB
+  //    (migratie 017 is optioneel). We gebruiken contracten.zorgdagen
+  //    (int[]) als bron voor dagen_per_week, dat is robuust.
   const { data: koppelingen } = await supabase
     .from('ouder_kind')
     .select(`
@@ -289,10 +292,9 @@ export async function ouderDetailOphalen(ouderId: string): Promise<OuderDetail |
       kinderen (
         id, voornaam, achternaam, geboortedatum, geslacht,
         contracten (
-          id, opvangtype, status, startdatum,
+          id, opvangtype, status, startdatum, zorgdagen,
           locaties (naam),
-          groepen (naam),
-          dagdelen_configuraties (dag)
+          groepen (naam)
         )
       )
     `)
@@ -377,8 +379,8 @@ export async function ouderDetailOphalen(ouderId: string): Promise<OuderDetail |
         startdatum: c.startdatum,
         locatie_naam: c.locaties?.naam ?? null,
         groep_naam:   c.groepen?.naam  ?? null,
-        dagen_per_week: Array.isArray(c.dagdelen_configuraties)
-          ? c.dagdelen_configuraties.length
+        dagen_per_week: Array.isArray(c.zorgdagen)
+          ? c.zorgdagen.length
           : null,
       })),
       planned_days: [],

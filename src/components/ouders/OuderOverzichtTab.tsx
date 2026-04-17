@@ -1,19 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { Phone, MessageSquare, StickyNote, ListTodo, User as UserIcon } from 'lucide-react'
-import type { OuderDetail, OuderMemo } from '@/types/ouders'
+import { Phone, MessageSquare, StickyNote, ListTodo, Mail, User as UserIcon } from 'lucide-react'
+import type { OuderDetail, OuderMemo, OuderEmail } from '@/types/ouders'
 import type { PortaalBericht } from './OuderDetail'
 
 interface Props {
   ouder: OuderDetail
   memos: OuderMemo[]
   portaalberichten: PortaalBericht[]
+  emails: OuderEmail[]
 }
 
 interface TimelineItem {
   id: string
-  bron: 'memo' | 'portaal'
+  bron: 'memo' | 'portaal' | 'email'
   datum: string
   titel: string
   inhoud: string
@@ -30,9 +31,11 @@ const MEMO_TYPE_STYLE: Record<string, { background: string; color: string; label
 }
 
 const PORTAAL_STYLE = { background: '#E8F5E9', color: '#388E3C', label: 'Portaal' }
+const EMAIL_STYLE   = { background: '#EDE9F8', color: '#6B5B95', label: 'E-mail' }
 
 function icoonVoor(bron: string, type?: string) {
   if (bron === 'portaal') return <MessageSquare className="w-4 h-4" />
+  if (bron === 'email')   return <Mail className="w-4 h-4" />
   switch (type) {
     case 'telefoon': return <Phone className="w-4 h-4" />
     case 'gesprek':  return <MessageSquare className="w-4 h-4" />
@@ -49,8 +52,8 @@ function formatRelatief(iso: string) {
   })
 }
 
-export default function OuderOverzichtTab({ ouder, memos, portaalberichten }: Props) {
-  // Union van memo's + portaalberichten, gesorteerd op datum DESC, top 5
+export default function OuderOverzichtTab({ ouder, memos, portaalberichten, emails }: Props) {
+  // Union van memo's + portaalberichten + e-mails, gesorteerd op datum DESC, top 5
   const timeline: TimelineItem[] = [
     ...memos.map(m => ({
       id: `m-${m.id}`,
@@ -72,6 +75,20 @@ export default function OuderOverzichtTab({ ouder, memos, portaalberichten }: Pr
       auteur: p.afzender_type === 'ouder' ? 'Ouder' : 'Medewerker',
       typeLabel: PORTAAL_STYLE.label,
       typeKleur: { background: PORTAAL_STYLE.background, color: PORTAAL_STYLE.color },
+      _type: undefined as string | undefined,
+    })),
+    ...emails.map(e => ({
+      id: `e-${e.id}`,
+      bron: 'email' as const,
+      datum: e.verzonden_op,
+      titel: e.onderwerp,
+      inhoud: (e.body_plain ?? '').slice(0, 200),
+      auteur:
+        e.richting === 'outbound'
+          ? (e.staff?.naam ?? 'Medewerker')
+          : e.van_adres,
+      typeLabel: e.richting === 'outbound' ? 'E-mail uit' : 'E-mail in',
+      typeKleur: { background: EMAIL_STYLE.background, color: EMAIL_STYLE.color },
       _type: undefined as string | undefined,
     })),
   ]

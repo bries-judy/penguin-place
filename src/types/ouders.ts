@@ -85,3 +85,40 @@ export interface OuderLijstRij {
   aantal_kinderen: number
   openstaand_bedrag: number
 }
+
+// ─── Ouder CRM — Fase 2a: e-mail-timeline ────────────────────────────────────
+
+export type OuderEmailBron     = 'handmatig' | 'm365' | 'gmail' | 'imap' | 'seed'
+export type OuderEmailRichting = 'inbound' | 'outbound'
+
+export interface OuderEmailBijlage {
+  id: string
+  email_id: string
+  bestandsnaam: string
+  mime_type: string
+  storage_path: string
+  grootte_bytes: number | null
+  volgorde: number
+}
+
+export interface OuderEmail {
+  id: string
+  ouder_id: string
+  bron: OuderEmailBron
+  richting: OuderEmailRichting
+  message_id: string | null
+  van_adres: string
+  aan_adressen: string[]
+  cc_adressen: string[]
+  onderwerp: string
+  body_plain: string | null
+  body_html: string | null
+  verzonden_op: string
+  staff_id: string | null
+  thread_id: string | null
+  heeft_bijlagen: boolean
+  created_at: string
+  // joins
+  staff?: { naam: string } | null
+  bijlagen?: OuderEmailBijlage[]
+}

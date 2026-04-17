@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import type { OuderDetail as OuderDetailType, OuderMemo } from '@/types/ouders'
+import type { OuderDetail as OuderDetailType, OuderMemo, OuderEmail } from '@/types/ouders'
 import OuderHeader from './OuderHeader'
 import OuderOverzichtTab from './OuderOverzichtTab'
 import OuderKinderenTab from './OuderKinderenTab'
@@ -33,11 +33,20 @@ export interface OuderFactuur {
   created_at: string
 }
 
+export interface AndereOuderRij {
+  id: string
+  voornaam: string
+  achternaam: string
+  email: string
+}
+
 interface Props {
   ouder: OuderDetailType
   memos: OuderMemo[]
   portaalberichten: PortaalBericht[]
   facturen: OuderFactuur[]
+  emails: OuderEmail[]
+  andereOuders: AndereOuderRij[]
 }
 
 const TABS = [
@@ -50,7 +59,14 @@ const TABS = [
   { value: 'gegevens',     label: 'Gegevens' },
 ] as const
 
-export default function OuderDetail({ ouder, memos, portaalberichten, facturen }: Props) {
+export default function OuderDetail({
+  ouder,
+  memos,
+  portaalberichten,
+  facturen,
+  emails,
+  andereOuders,
+}: Props) {
   const [actieveTab, setActieveTab] = useState<string>('overzicht')
 
   function naarCommunicatie() {
@@ -97,7 +113,7 @@ export default function OuderDetail({ ouder, memos, portaalberichten, facturen }
 
           <div className="pt-6">
             <TabsContent value="overzicht">
-              <OuderOverzichtTab ouder={ouder} memos={memos} portaalberichten={portaalberichten} />
+              <OuderOverzichtTab ouder={ouder} memos={memos} portaalberichten={portaalberichten} emails={emails} />
             </TabsContent>
             <TabsContent value="kinderen">
               <OuderKinderenTab ouder={ouder} />
@@ -110,6 +126,8 @@ export default function OuderDetail({ ouder, memos, portaalberichten, facturen }
                 ouder={ouder}
                 memos={memos}
                 portaalberichten={portaalberichten}
+                emails={emails}
+                andereOuders={andereOuders}
               />
             </TabsContent>
             <TabsContent value="financieel">

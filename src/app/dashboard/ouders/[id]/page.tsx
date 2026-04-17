@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation'
 import {
   ouderDetailOphalen,
   ouderFacturenOphalen,
+  oudersOphalen,
   portaalberichtenOphalen,
 } from '@/app/actions/ouders'
 import { memosOphalen } from '@/app/actions/ouderMemos'
+import { emailsOphalen } from '@/app/actions/ouderEmails'
 import OuderDetail, {
   type OuderFactuur,
   type PortaalBericht,
@@ -25,12 +27,15 @@ export default async function OuderDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [ouder, memos, portaalberichtenRaw, facturenRaw] = await Promise.all([
-    ouderDetailOphalen(id),
-    memosOphalen(id),
-    portaalberichtenOphalen(id),
-    ouderFacturenOphalen(id),
-  ])
+  const [ouder, memos, portaalberichtenRaw, facturenRaw, emails, ouders] =
+    await Promise.all([
+      ouderDetailOphalen(id),
+      memosOphalen(id),
+      portaalberichtenOphalen(id),
+      ouderFacturenOphalen(id),
+      emailsOphalen(id),
+      oudersOphalen(),
+    ])
 
   if (!ouder) redirect('/dashboard/ouders')
 
@@ -55,12 +60,19 @@ export default async function OuderDetailPage({
     created_at: f.created_at,
   }))
 
+  // Herkoppel-menu heeft andere ouders (niet de huidige) nodig
+  const andereOuders = ouders
+    .filter(o => o.id !== id && o.actief)
+    .map(o => ({ id: o.id, voornaam: o.voornaam, achternaam: o.achternaam, email: o.email }))
+
   return (
     <OuderDetail
       ouder={ouder}
       memos={memos}
       portaalberichten={portaalberichten}
       facturen={facturen}
+      emails={emails}
+      andereOuders={andereOuders}
     />
   )
 }
