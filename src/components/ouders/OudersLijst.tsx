@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Search, Plus, ArrowUp, ArrowDown } from 'lucide-react'
 import type { OuderLijstRij } from '@/types/ouders'
 
@@ -21,6 +22,7 @@ function formatEuro(bedrag: number): string {
 }
 
 export default function OudersLijst({ ouders }: Props) {
+  const router = useRouter()
   const [zoek, setZoek]         = useState('')
   const [toonInactief, setToon] = useState(false)
   // Default: alfabetisch op naam oplopend.
@@ -147,7 +149,7 @@ export default function OudersLijst({ ouders }: Props) {
                 </th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>E-mail</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Telefoon</th>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Kinderen</th>
+                <th className="text-right px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Kinderen</th>
                 <th className="text-right px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>
                   <button
                     type="button"
@@ -171,12 +173,24 @@ export default function OudersLijst({ ouders }: Props) {
                 gefilterd.map(o => (
                   <tr
                     key={o.id}
-                    className="border-t transition hover:bg-[#EDE9F8]/50"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(`/dashboard/ouders/${o.id}`)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        router.push(`/dashboard/ouders/${o.id}`)
+                      }
+                    }}
+                    className="border-t transition hover:bg-[#EDE9F8]/50 cursor-pointer focus:outline-none focus-visible:bg-[#EDE9F8]/70"
                     style={{ borderColor: '#EDEAE4' }}
                   >
                     <td className="px-4 py-3">
+                      {/* Link binnen de cel: geeft nog steeds rechtsklik → "open in new tab",
+                          en is keyboard-toegankelijk via focus van de Link zelf. */}
                       <Link
                         href={`/dashboard/ouders/${o.id}`}
+                        onClick={e => e.stopPropagation()}
                         className="flex items-center gap-3 font-semibold"
                         style={{ color: '#2D2540' }}
                       >
@@ -190,20 +204,28 @@ export default function OudersLijst({ ouders }: Props) {
                       </Link>
                     </td>
                     <td className="px-4 py-3" style={{ color: '#5A5278' }}>
-                      <a href={`mailto:${o.email}`} className="hover:underline">
+                      <a
+                        href={`mailto:${o.email}`}
+                        onClick={e => e.stopPropagation()}
+                        className="hover:underline"
+                      >
                         {o.email}
                       </a>
                     </td>
                     <td className="px-4 py-3" style={{ color: '#5A5278' }}>
                       {o.telefoon_mobiel ? (
-                        <a href={`tel:${o.telefoon_mobiel}`} className="hover:underline">
+                        <a
+                          href={`tel:${o.telefoon_mobiel}`}
+                          onClick={e => e.stopPropagation()}
+                          className="hover:underline"
+                        >
                           {o.telefoon_mobiel}
                         </a>
                       ) : (
                         '—'
                       )}
                     </td>
-                    <td className="px-4 py-3" style={{ color: '#5A5278' }}>
+                    <td className="px-4 py-3 text-right tabular-nums" style={{ color: '#5A5278' }}>
                       {o.aantal_kinderen}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
