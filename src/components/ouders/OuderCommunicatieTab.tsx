@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Phone, MessageSquare, StickyNote, ListTodo, Mail,
@@ -19,6 +19,9 @@ interface Props {
   portaalberichten: PortaalBericht[]
   emails: OuderEmail[]
   andereOuders: AndereOuderRij[]
+  /** Counter die ophoogt wanneer de "Open taken"-tile in de header geklikt is.
+   *  Elke verhoging triggert "Alleen open taken" aan. */
+  forceAlleenOpenTaken?: number
 }
 
 const MEMO_TYPE_CONFIG: Record<
@@ -69,7 +72,7 @@ function formatBytes(bytes: number | null): string {
 }
 
 export default function OuderCommunicatieTab({
-  ouder, memos, portaalberichten, emails, andereOuders,
+  ouder, memos, portaalberichten, emails, andereOuders, forceAlleenOpenTaken,
 }: Props) {
   const router = useRouter()
   const [formOpen, setFormOpen] = useState(false)
@@ -79,6 +82,13 @@ export default function OuderCommunicatieTab({
   const [alleenOpenTaken, setAlleenOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [fout, setFout] = useState<string | null>(null)
+
+  // Vink "Alleen open taken" aan wanneer de header-tile is geklikt
+  useEffect(() => {
+    if (forceAlleenOpenTaken && forceAlleenOpenTaken > 0) {
+      setAlleenOpen(true)
+    }
+  }, [forceAlleenOpenTaken])
 
   const items: UnifiedItem[] = useMemo(() => {
     const memoItems: UnifiedItem[] = memos

@@ -68,9 +68,25 @@ export default function OuderDetail({
   andereOuders,
 }: Props) {
   const [actieveTab, setActieveTab] = useState<string>('overzicht')
+  // Wordt ingesteld door de "Open taken"-tile en eenmalig geconsumeerd
+  // door de Communicatie-tab om de "Alleen open taken"-filter vooraf
+  // aan te vinken. Null = geen force-actie.
+  const [forceAlleenOpenTaken, setForceAlleenOpenTaken] = useState<number>(0)
 
   function naarCommunicatie() {
     setActieveTab('communicatie')
+  }
+
+  function handleHeaderNavigate(doel: {
+    tab: 'financieel' | 'communicatie' | 'documenten'
+    alleenOpenTaken?: boolean
+  }) {
+    setActieveTab(doel.tab)
+    if (doel.tab === 'communicatie' && doel.alleenOpenTaken) {
+      // Bump counter zodat useEffect in de tab hem herkent als nieuwe actie,
+      // ook als gebruiker de tile 2x klikt.
+      setForceAlleenOpenTaken((n) => n + 1)
+    }
   }
 
   return (
@@ -96,7 +112,11 @@ export default function OuderDetail({
       </header>
 
       <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-        <OuderHeader ouder={ouder} onNieuweMemo={naarCommunicatie} />
+        <OuderHeader
+          ouder={ouder}
+          onNieuweMemo={naarCommunicatie}
+          onNavigate={handleHeaderNavigate}
+        />
 
         <Tabs value={actieveTab} onValueChange={(v) => setActieveTab(v as string)}>
           <TabsList
@@ -128,6 +148,7 @@ export default function OuderDetail({
                 portaalberichten={portaalberichten}
                 emails={emails}
                 andereOuders={andereOuders}
+                forceAlleenOpenTaken={forceAlleenOpenTaken}
               />
             </TabsContent>
             <TabsContent value="financieel">

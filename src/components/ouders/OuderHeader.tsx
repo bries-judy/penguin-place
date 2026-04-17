@@ -4,9 +4,15 @@ import { useState } from 'react'
 import { Mail, Phone, Plus, MoreHorizontal } from 'lucide-react'
 import type { OuderDetail } from '@/types/ouders'
 
+export type HeaderNavDoel =
+  | { tab: 'financieel' }
+  | { tab: 'communicatie'; alleenOpenTaken?: boolean }
+  | { tab: 'documenten' }
+
 interface Props {
   ouder: OuderDetail
   onNieuweMemo: () => void
+  onNavigate: (doel: HeaderNavDoel) => void
 }
 
 function initialen(voornaam: string, achternaam: string) {
@@ -34,9 +40,11 @@ interface TileProps {
   value: string
   sub?: string
   tone?: 'neutraal' | 'rood' | 'oranje' | 'groen'
+  onClick?: () => void
+  ariaLabel?: string
 }
 
-function Tile({ label, value, sub, tone = 'neutraal' }: TileProps) {
+function Tile({ label, value, sub, tone = 'neutraal', onClick, ariaLabel }: TileProps) {
   const toneStyle: React.CSSProperties = (() => {
     switch (tone) {
       case 'rood':   return { background: '#FDECEA', color: '#ba1a1a', borderColor: '#F4C7C2' }
@@ -46,8 +54,8 @@ function Tile({ label, value, sub, tone = 'neutraal' }: TileProps) {
     }
   })()
 
-  return (
-    <div className="rounded-xl border px-4 py-3" style={toneStyle}>
+  const body = (
+    <>
       <div className="text-[11px] uppercase tracking-wider font-bold opacity-80">{label}</div>
       <div
         className="text-xl font-extrabold mt-0.5"
@@ -56,11 +64,31 @@ function Tile({ label, value, sub, tone = 'neutraal' }: TileProps) {
         {value}
       </div>
       {sub && <div className="text-xs opacity-80 mt-0.5">{sub}</div>}
+    </>
+  )
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel ?? label}
+        className="rounded-xl border px-4 py-3 text-left cursor-pointer transition hover:brightness-95 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B5B95]/40"
+        style={toneStyle}
+      >
+        {body}
+      </button>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border px-4 py-3" style={toneStyle}>
+      {body}
     </div>
   )
 }
 
-export default function OuderHeader({ ouder, onNieuweMemo }: Props) {
+export default function OuderHeader({ ouder, onNieuweMemo, onNavigate }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const aantalKinderen = ouder.kinderen.length
@@ -169,6 +197,8 @@ export default function OuderHeader({ ouder, onNieuweMemo }: Props) {
           value={formatEuro(ouder.openstaand_bedrag)}
           sub={ouder.openstaand_bedrag > 0 ? 'Niet betaalde facturen' : 'Alles betaald'}
           tone={saldoTone}
+          ariaLabel="Naar financieel-tab"
+          onClick={() => onNavigate({ tab: 'financieel' })}
         />
         <Tile
           label="Laatste contact"
@@ -178,17 +208,23 @@ export default function OuderHeader({ ouder, onNieuweMemo }: Props) {
               ? TYPE_LABEL_CONTACT[ouder.laatste_contact_type] ?? ouder.laatste_contact_type
               : undefined
           }
+          ariaLabel="Naar communicatie-tab"
+          onClick={() => onNavigate({ tab: 'communicatie' })}
         />
         <Tile
           label="Open taken"
           value={String(ouder.aantal_open_taken)}
-          sub={ouder.aantal_open_taken === 1 ? 'openstaand' : 'openstaand'}
+          sub="openstaand"
           tone={takenTone}
+          ariaLabel="Naar communicatie-tab met alleen open taken"
+          onClick={() => onNavigate({ tab: 'communicatie', alleenOpenTaken: true })}
         />
         <Tile
           label="Actieve contracten"
           value={String(ouder.actieve_contracten_count)}
           sub={ouder.actieve_contracten_count === 1 ? 'contract' : 'contracten'}
+          ariaLabel="Naar documenten-tab"
+          onClick={() => onNavigate({ tab: 'documenten' })}
         />
       </div>
     </section>
