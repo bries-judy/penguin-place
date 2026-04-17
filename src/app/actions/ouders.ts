@@ -301,24 +301,14 @@ export async function ouderDetailOphalen(ouderId: string): Promise<OuderDetail |
     .eq('ouder_id', ouderId)
     .eq('actief', true)
 
-  // 3. Openstaand saldo via contactpersoon_id → invoices.parent_id
-  const contactpersoonIds = (koppelingen ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((k: any) => k.contactpersoon_id)
-    .filter(Boolean) as string[]
-
-  let openstaand_bedrag = 0
-  if (contactpersoonIds.length > 0) {
-    const { data: facturen } = await supabase
-      .from('invoices')
-      .select('totaal_bedrag')
-      .in('parent_id', contactpersoonIds)
-      .in('status', ['sent', 'overdue'])
-
-    openstaand_bedrag = (facturen ?? [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .reduce((sum: number, f: any) => sum + Number(f.totaal_bedrag ?? 0), 0)
-  }
+  // 3. Openstaand saldo via v_ouder_saldo view (Fase 2b.1).
+  //    De view aggregeert invoices per ouder via ouder_kind.contactpersoon_id.
+  const { data: saldo } = await supabase
+    .from('v_ouder_saldo')
+    .select('openstaand_bedrag')
+    .eq('ouder_id', ouderId)
+    .maybeSingle()
+  const openstaand_bedrag = Number(saldo?.openstaand_bedrag ?? 0)
 
   // 4. Aantal open taken
   const { count: open_taken } = await supabase
@@ -425,15 +415,36 @@ export async function oudersOphalen(): Promise<OuderLijstRij[]> {
 
   if (!ouders) return []
 
+  // Saldo per ouder via v_ouder_saldo view (Fase 2b.1).
+  const { data: saldos } = await supabase
+    .from('v_ouder_saldo')
+    .select('ouder_id, openstaand_bedrag, aantal_openstaand')
+    .eq('organisatie_id', profile.organisatie_id)
+
+  const saldoMap = new Map<string, { bedrag: number; aantal: number }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ouders.map((o: any) => ({
-    id: o.id,
-    voornaam: o.voornaam,
-    achternaam: o.achternaam,
-    email: o.email,
-    telefoon_mobiel: o.telefoon_mobiel,
-    actief: o.actief,
-    aantal_kinderen: Array.isArray(o.ouder_kind) ? o.ouder_kind.length : 0,
-    openstaand_bedrag: 0, // TODO: aggregeren in fase 2 (join te zwaar voor lijst)
-  }))
+  for (const s of saldos ?? []) {
+    saldoMap.set((s as any).ouder_id, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bedrag: Number((s as any).openstaand_bedrag ?? 0),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      aantal: Number((s as any).aantal_openstaand ?? 0),
+    })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ouders.map((o: any) => {
+    const s = saldoMap.get(o.id) ?? { bedrag: 0, aantal: 0 }
+    return {
+      id: o.id,
+      voornaam: o.voornaam,
+      achternaam: o.achternaam,
+      email: o.email,
+      telefoon_mobiel: o.telefoon_mobiel,
+      actief: o.actief,
+      aantal_kinderen: Array.isArray(o.ouder_kind) ? o.ouder_kind.length : 0,
+      openstaand_bedrag: s.bedrag,
+      aantal_openstaand: s.aantal,
+    }
+  })
 }

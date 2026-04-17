@@ -84,6 +84,17 @@ export interface OuderLijstRij {
   actief: boolean
   aantal_kinderen: number
   openstaand_bedrag: number
+  aantal_openstaand: number
+}
+
+/** Projection van de v_ouder_saldo view. */
+export interface OuderSaldo {
+  ouder_id: string
+  organisatie_id: string
+  openstaand_bedrag: number
+  aantal_openstaand: number
+  oudste_openstaande_datum: string | null
+  laatste_betaling_op: string | null
 }
 
 // ─── Ouder CRM — Fase 2a: e-mail-timeline ────────────────────────────────────

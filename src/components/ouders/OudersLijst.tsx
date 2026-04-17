@@ -2,30 +2,68 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, ArrowUp, ArrowDown } from 'lucide-react'
 import type { OuderLijstRij } from '@/types/ouders'
 
 interface Props {
   ouders: OuderLijstRij[]
 }
 
+type SortKey = 'naam' | 'saldo'
+type SortDir = 'asc' | 'desc'
+
 function initialen(voornaam: string, achternaam: string) {
   return (voornaam.charAt(0) + achternaam.charAt(0)).toUpperCase() || '–'
+}
+
+function formatEuro(bedrag: number): string {
+  return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(bedrag)
 }
 
 export default function OudersLijst({ ouders }: Props) {
   const [zoek, setZoek]         = useState('')
   const [toonInactief, setToon] = useState(false)
+  // Default: alfabetisch op naam oplopend.
+  const [sortKey, setSortKey]   = useState<SortKey>('naam')
+  const [sortDir, setSortDir]   = useState<SortDir>('asc')
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      // Sensible defaults per kolom
+      setSortDir(key === 'saldo' ? 'desc' : 'asc')
+    }
+  }
 
   const gefilterd = useMemo(() => {
     const q = zoek.trim().toLowerCase()
-    return ouders.filter(o => {
+    const basis = ouders.filter(o => {
       if (!toonInactief && !o.actief) return false
       if (!q) return true
       const naam = `${o.voornaam} ${o.achternaam}`.toLowerCase()
       return naam.includes(q) || o.email.toLowerCase().includes(q)
     })
-  }, [ouders, zoek, toonInactief])
+
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...basis].sort((a, b) => {
+      if (sortKey === 'saldo') {
+        return (a.openstaand_bedrag - b.openstaand_bedrag) * dir
+      }
+      // naam: eerst achternaam, dan voornaam (case-insensitive nl-locale)
+      const aKey = `${a.achternaam} ${a.voornaam}`.toLowerCase()
+      const bKey = `${b.achternaam} ${b.voornaam}`.toLowerCase()
+      return aKey.localeCompare(bKey, 'nl') * dir
+    })
+  }, [ouders, zoek, toonInactief, sortKey, sortDir])
+
+  function SortIcon({ k }: { k: SortKey }) {
+    if (k !== sortKey) return null
+    return sortDir === 'asc'
+      ? <ArrowUp className="inline w-3 h-3 ml-1" />
+      : <ArrowDown className="inline w-3 h-3 ml-1" />
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -98,17 +136,34 @@ export default function OudersLijst({ ouders }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: '#F5F3F0' }}>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Naam</th>
+                <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('naam')}
+                    className="inline-flex items-center hover:text-[#2D2540]"
+                  >
+                    Naam <SortIcon k="naam" />
+                  </button>
+                </th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>E-mail</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Telefoon</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Kinderen</th>
+                <th className="text-right px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('saldo')}
+                    className="inline-flex items-center hover:text-[#2D2540]"
+                  >
+                    Openstaand <SortIcon k="saldo" />
+                  </button>
+                </th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: '#5A5278' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {gefilterd.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center" style={{ color: '#8B82A8' }}>
+                  <td colSpan={6} className="px-4 py-8 text-center" style={{ color: '#8B82A8' }}>
                     Geen ouders gevonden.
                   </td>
                 </tr>
@@ -150,6 +205,21 @@ export default function OudersLijst({ ouders }: Props) {
                     </td>
                     <td className="px-4 py-3" style={{ color: '#5A5278' }}>
                       {o.aantal_kinderen}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {o.openstaand_bedrag > 0 ? (
+                        <span
+                          className="font-bold"
+                          style={{ color: '#ba1a1a' }}
+                          title={o.aantal_openstaand === 1
+                            ? '1 openstaande factuur'
+                            : `${o.aantal_openstaand} openstaande facturen`}
+                        >
+                          {formatEuro(o.openstaand_bedrag)}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#C8C2D8' }}>—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span
