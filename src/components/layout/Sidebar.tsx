@@ -14,6 +14,7 @@ import {
   UserCog,
   Shield,
   Settings,
+  Users,
   HelpCircle,
   type LucideIcon,
 } from 'lucide-react'
@@ -36,6 +37,12 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/dashboard/wachtlijst', icon: Clock, label: 'Wachtlijst' },
       { href: '/dashboard/aanbiedingen', icon: FileText, label: 'Aanbiedingen' },
+    ],
+  },
+  {
+    label: 'Klanten',
+    items: [
+      { href: '/dashboard/ouders', icon: Users, label: 'Ouders' },
     ],
   },
   {
