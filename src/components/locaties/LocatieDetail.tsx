@@ -11,6 +11,7 @@ import GroepenTab from './tabs/GroepenTab'
 import ComplianceTab from './tabs/ComplianceTab'
 import PersoneelTab from './tabs/PersoneelTab'
 import FacturatieTab from './tabs/FacturatieTab'
+import DagdelenTab from './tabs/DagdelenTab'
 import type {
   Locatie, Groep, OpeningstijdenRegel, OpeningstijdenUitzondering,
   LocatieType, LocatieStatus,
@@ -21,7 +22,7 @@ import { LOCATIE_TYPE_LABELS } from '@/types/locaties'
 
 interface ManagerProfiel {
   id: string
-  profiles: { voornaam: string; achternaam: string } | null
+  profiles: { naam: string } | null
 }
 
 export interface LocatieMetRelaties extends Locatie {
@@ -69,6 +70,7 @@ export default function LocatieDetail({ locatie }: Props) {
   const tabs = [
     { value: 'algemeen',       label: 'Algemeen' },
     { value: 'openingstijden', label: 'Openingstijden' },
+    { value: 'dagdelen',       label: 'Dagdelen' },
     { value: 'groepen',        label: 'Groepen' },
     { value: 'compliance',     label: 'Compliance' },
     { value: 'personeel',      label: 'Personeel' },
@@ -171,6 +173,9 @@ export default function LocatieDetail({ locatie }: Props) {
                 openingstijden={locatie.locatie_openingstijden}
                 uitzonderingen={locatie.locatie_openingstijden_uitzonderingen}
               />
+            </TabsContent>
+            <TabsContent value="dagdelen">
+              <DagdelenTab locatieId={locatie.id} groepen={locatie.groepen} />
             </TabsContent>
             <TabsContent value="groepen">
               <GroepenTab locatieId={locatie.id} groepen={locatie.groepen} />
