@@ -8,11 +8,12 @@ import {
 } from '@/app/actions/kinderen'
 import { contractActiveren } from '@/app/actions/contracten'
 import ContractForm from './ContractForm'
+import DagverslagLijst from '@/components/dagverslagen/DagverslagLijst'
 import type { Kind, Adres, Contactpersoon, MedischGegevens, Contract, ContractStatus, Opvangtype } from '@/lib/supabase/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ContractMetRefs extends Contract {
+type ContractMetRefs = Contract & {
   locaties: { naam: string } | null
   groepen:  { naam: string } | null
   contracttypen?: { naam: string; merken?: { naam: string } | null } | null
@@ -25,6 +26,8 @@ interface Props {
   medisch:        MedischGegevens | null
   contracten:     ContractMetRefs[]
   notities:       { id: string; tekst: string; created_at: string; user_id: string }[]
+  dagverslagen:   { id: string; datum: string; activiteiten: string | null; eten_drinken: string | null; slaaptijden: string | null; stemming: string | null; bijzonderheden: string | null; gepubliceerd: boolean; gepubliceerd_op: string | null; auteur_id: string; created_at: string; media: { id: string; bestandsnaam: string }[] }[]
+  actieveGroepId: string | null
   siblings:       { siblingId: string; kind: unknown }[]
   locaties:       { id: string; naam: string }[]
   groepen:        { id: string; naam: string; locatie_id: string }[]
@@ -32,7 +35,7 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type Tab = 'algemeen' | 'contacten' | 'medisch' | 'contracten' | 'notities'
+type Tab = 'algemeen' | 'contacten' | 'medisch' | 'contracten' | 'dagverslagen' | 'notities'
 
 const DAG_LABELS = ['Ma', 'Di', 'Wo', 'Do', 'Vr']
 
@@ -124,7 +127,7 @@ function UitschrijvenModal({ kindId, naam, onClose }: { kindId: string; naam: st
 
 export default function KindProfiel({
   kind, adres, contactpersonen, medisch, contracten,
-  notities, siblings, locaties, groepen,
+  notities, dagverslagen, actieveGroepId, siblings, locaties, groepen,
 }: Props) {
   const [actieveTab, setTab]           = useState<Tab>('algemeen')
   const [bewerkAlgemeen, setBewerkAlg] = useState(false)
@@ -141,8 +144,9 @@ export default function KindProfiel({
     { id: 'algemeen',   label: 'Algemeen',   icon: 'person' },
     { id: 'contacten',  label: 'Contacten',  icon: 'contacts' },
     { id: 'medisch',    label: 'Medisch',    icon: 'medical_information' },
-    { id: 'contracten', label: 'Contracten', icon: 'description' },
-    { id: 'notities',   label: 'Notities',   icon: 'sticky_note_2' },
+    { id: 'contracten',   label: 'Contracten',   icon: 'description' },
+    { id: 'dagverslagen', label: 'Dagverslagen', icon: 'article' },
+    { id: 'notities',     label: 'Notities',     icon: 'sticky_note_2' },
   ]
 
   return (
@@ -287,7 +291,7 @@ export default function KindProfiel({
                     ['Geslacht', kind.geslacht === 'man' ? 'Jongen' : kind.geslacht === 'vrouw' ? 'Meisje' : kind.geslacht === 'onbekend' ? 'Onbekend' : '—'],
                     ['Adres', adres ? `${adres.straat} ${adres.huisnummer}, ${adres.postcode} ${adres.woonplaats}` : '—'],
                     ['BSN', (kind as Record<string,unknown>).bsn ? `${((kind as Record<string,unknown>).bsn as string).slice(0,4)}·····` : '—'],
-                    ['Aangemeld op', new Date(kind.aangemeld_op).toLocaleDateString('nl-NL')],
+                    ['Aangemeld op', kind.aangemeld_op ? new Date(kind.aangemeld_op).toLocaleDateString('nl-NL') : '—'],
                   ].map(([k, v]) => (
                     <div key={k}>
                       <dt className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{k}</dt>
@@ -460,7 +464,7 @@ export default function KindProfiel({
               <div className="space-y-3">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Actief / Concept</p>
                 {actieveContracten.map(c => {
-                  const cfg = STATUS_CFG[c.status]
+                  const cfg = STATUS_CFG[c.status as ContractStatus]
                   const cr = c as unknown as Record<string, unknown>
                   const dd = (cr.dagdelen ?? {}) as Record<string, string>
                   const hasDagdelen = Object.keys(dd).length > 0
@@ -473,7 +477,7 @@ export default function KindProfiel({
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
-                            <span className="text-xs text-slate-400 font-semibold">{OPVANG_LABEL[c.opvangtype]}</span>
+                            <span className="text-xs text-slate-400 font-semibold">{OPVANG_LABEL[c.opvangtype as Opvangtype]}</span>
                             {ctNaam && <span className="text-xs text-[#004d64] font-semibold">{ctNaam}</span>}
                           </div>
                           <p className="font-bold text-[#181c1d]">
@@ -576,13 +580,13 @@ export default function KindProfiel({
               <div className="space-y-3">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Historiek</p>
                 {historiekContracten.map(c => {
-                  const cfg = STATUS_CFG[c.status]
+                  const cfg = STATUS_CFG[c.status as ContractStatus]
                   return (
                     <div key={c.id} className="bg-slate-50 rounded-2xl border border-slate-100 p-4 opacity-70">
                       <div className="flex items-center gap-3 text-sm">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
                         <span className="font-semibold text-slate-600">{c.locaties?.naam ?? '—'}</span>
-                        <span className="text-slate-400">{OPVANG_LABEL[c.opvangtype]}</span>
+                        <span className="text-slate-400">{OPVANG_LABEL[c.opvangtype as Opvangtype]}</span>
                         <span className="text-slate-400 ml-auto text-xs">
                           {new Date(c.startdatum).toLocaleDateString('nl-NL')}
                           {c.einddatum && ` → ${new Date(c.einddatum).toLocaleDateString('nl-NL')}`}
@@ -602,6 +606,15 @@ export default function KindProfiel({
               </div>
             )}
           </div>
+        )}
+
+        {/* ─ Dagverslagen ─────────────────────────────────────── */}
+        {actieveTab === 'dagverslagen' && (
+          <DagverslagLijst
+            kindId={kind.id}
+            groepId={actieveGroepId}
+            dagverslagen={dagverslagen}
+          />
         )}
 
         {/* ─ Notities ──────────────────────────────────────────── */}
@@ -647,7 +660,8 @@ export default function KindProfiel({
           kindId={kind.id}
           locaties={locaties}
           groepen={groepen}
-          bestaand={contractModal === 'nieuw' ? undefined : contractModal}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          bestaand={contractModal === 'nieuw' ? undefined : contractModal as any}
           onClose={() => setContractModal(null)}
         />
       )}

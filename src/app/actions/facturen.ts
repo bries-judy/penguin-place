@@ -198,7 +198,7 @@ export async function checkFactuurIntegriteit(): Promise<
 
 // ─── Lokale types voor UI ─────────────────────────────────────────────────────
 
-export interface FactuurMetParent extends Invoice {
+export type FactuurMetParent = Invoice & {
   contactpersonen: {
     voornaam: string
     achternaam: string

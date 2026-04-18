@@ -1,0 +1,162 @@
+-- ═══════════════════════════════════════════════════════════════
+-- PENGUIN PLACE — Migratie 028: Seed data voor ouders (dev/test)
+-- ═══════════════════════════════════════════════════════════════
+--
+-- Testdata voor ouder-funcionaliteit.
+-- Maakt ouder-profielen en koppelingen aan voor bestaande kinderen.
+-- Maakt dagverslagen aan zodat de ouder-app iets te tonen heeft.
+--
+-- ⚠️  Deze seed gebruikt vaste UUIDs voor ouder-profielen.
+--     In productie worden ouder-accounts aangemaakt via
+--     supabase.auth.admin.createUser() met app_metadata.
+--     De handle_new_user() trigger maakt dan automatisch
+--     de ouder_profielen rij aan.
+--
+-- ⚠️  Omdat we geen auth.users rijen kunnen inserten via SQL
+--     (dat gaat via Supabase Auth API), maken we alleen de
+--     ouder_profielen en ouder_kind rijen aan.
+--     Voor volledige test: maak eerst auth users aan via
+--     de ouderUitnodigen server action.
+-- ═══════════════════════════════════════════════════════════════
+
+
+-- ─────────────────────────────────────────────────────
+-- 1. Ouder profielen (referentie-data, geen auth.users)
+-- ─────────────────────────────────────────────────────
+--
+-- NB: Deze inserts werken alleen als er corresponderende
+-- auth.users bestaan. In dev: maak eerst users aan via
+-- Supabase Dashboard of de ouderUitnodigen action.
+-- Commentaar uit wanneer auth users beschikbaar zijn.
+
+-- INSERT INTO public.ouder_profielen (id, organisatie_id, voornaam, achternaam, email) VALUES
+--   ('a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Lisa', 'de Vries', 'lisa.devries@test.nl'),
+--   ('a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Peter', 'Jansen', 'peter.jansen@test.nl'),
+--   ('a0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Maria', 'van den Berg', 'maria.vdberg@test.nl');
+
+
+-- ─────────────────────────────────────────────────────
+-- 2. Ouder-kind koppelingen
+-- ─────────────────────────────────────────────────────
+--
+-- Lisa de Vries → ouder van Emma de Vries (kind 001)
+-- Peter Jansen → ouder van Liam Jansen (kind 002)
+-- Maria van den Berg → ouder van Noa van den Berg (kind 003) + Sara Visser (kind 005, stiefkind)
+
+-- INSERT INTO public.ouder_kind (ouder_id, kind_id, relatie) VALUES
+--   ('a0000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'ouder1'),
+--   ('a0000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', 'ouder1'),
+--   ('a0000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000003', 'ouder1'),
+--   ('a0000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000005', 'ouder2');
+
+
+-- ─────────────────────────────────────────────────────
+-- 3. Dagverslagen (voor bestaande kinderen)
+-- ─────────────────────────────────────────────────────
+--
+-- Deze dagverslagen verwijzen naar bestaande kinderen en groepen
+-- uit 003_seed_demo.sql. auteur_id moet een bestaande auth.users
+-- rij zijn — gebruik de admin user of commentaar dit uit.
+
+-- Dagverslagen voor Emma de Vries (groep Zonnebloem)
+-- auteur_id moet vervangen worden door een echte staff user ID
+
+-- INSERT INTO public.dagverslagen
+--   (id, organisatie_id, kind_id, groep_id, datum, activiteiten, eten_drinken, slaaptijden, stemming, bijzonderheden, auteur_id, gepubliceerd, gepubliceerd_op)
+-- VALUES
+--   (
+--     'd0000000-0000-0000-0000-000000000001',
+--     '00000000-0000-0000-0000-000000000001',
+--     '30000000-0000-0000-0000-000000000001',  -- Emma
+--     '20000000-0000-0000-0000-000000000001',  -- Zonnebloem
+--     '2026-04-14',
+--     'Vandaag veel buiten gespeeld. Emma heeft in de zandbak een kasteel gebouwd met Liam.',
+--     'Goed gegeten: boterham, fruit en melk. Geen bijzonderheden.',
+--     '12:30 - 14:00 (1,5 uur)',
+--     'Vrolijk en actief de hele dag',
+--     NULL,
+--     '-- VERVANG MET ECHTE STAFF USER ID --',
+--     true,
+--     '2026-04-14 16:00:00+02'
+--   ),
+--   (
+--     'd0000000-0000-0000-0000-000000000002',
+--     '00000000-0000-0000-0000-000000000001',
+--     '30000000-0000-0000-0000-000000000001',  -- Emma
+--     '20000000-0000-0000-0000-000000000001',  -- Zonnebloem
+--     '2026-04-11',
+--     'Creatieve ochtend: schilderen en knutselen. Emma heeft een mooie vlinder gemaakt.',
+--     'Normaal gegeten. Heeft de appel laten liggen.',
+--     '12:15 - 13:45 (1,5 uur)',
+--     'Rustig en geconcentreerd',
+--     'Emma was een beetje verkouden, maar verder goed.',
+--     '-- VERVANG MET ECHTE STAFF USER ID --',
+--     true,
+--     '2026-04-11 16:30:00+02'
+--   ),
+--   -- Ongepubliceerd dagverslag (voor RLS test)
+--   (
+--     'd0000000-0000-0000-0000-000000000003',
+--     '00000000-0000-0000-0000-000000000001',
+--     '30000000-0000-0000-0000-000000000001',  -- Emma
+--     '20000000-0000-0000-0000-000000000001',  -- Zonnebloem
+--     '2026-04-15',
+--     'Concept — nog niet af',
+--     NULL,
+--     NULL,
+--     NULL,
+--     NULL,
+--     '-- VERVANG MET ECHTE STAFF USER ID --',
+--     false,
+--     NULL
+--   );
+
+-- Dagverslag voor Liam Jansen (groep Zonnebloem)
+-- INSERT INTO public.dagverslagen
+--   (id, organisatie_id, kind_id, groep_id, datum, activiteiten, eten_drinken, slaaptijden, stemming, bijzonderheden, auteur_id, gepubliceerd, gepubliceerd_op)
+-- VALUES
+--   (
+--     'd0000000-0000-0000-0000-000000000004',
+--     '00000000-0000-0000-0000-000000000001',
+--     '30000000-0000-0000-0000-000000000002',  -- Liam
+--     '20000000-0000-0000-0000-000000000001',  -- Zonnebloem
+--     '2026-04-14',
+--     'Liam heeft vanmorgen veel met de blokken gebouwd. Heeft een toren van 15 blokken gemaakt!',
+--     'Goed gegeten. Dronk extra water na het buitenspelen.',
+--     '12:45 - 14:15 (1,5 uur)',
+--     'Energiek en sociaal',
+--     NULL,
+--     '-- VERVANG MET ECHTE STAFF USER ID --',
+--     true,
+--     '2026-04-14 16:00:00+02'
+--   );
+
+
+-- ─────────────────────────────────────────────────────
+-- 4. Dagverslag media (referentie voor gallery-test)
+-- ─────────────────────────────────────────────────────
+--
+-- NB: storage_path verwijst naar bestanden in de 'media' bucket.
+-- Upload de daadwerkelijke bestanden handmatig of via de UI.
+
+-- INSERT INTO public.dagverslag_media
+--   (dagverslag_id, storage_path, bestandsnaam, mime_type, bestandsgrootte, volgorde, uploaded_by)
+-- VALUES
+--   (
+--     'd0000000-0000-0000-0000-000000000001',
+--     '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/d0000000-0000-0000-0000-000000000001/foto1.jpg',
+--     'Emma zandbak kasteel.jpg',
+--     'image/jpeg',
+--     2048000,
+--     0,
+--     '-- VERVANG MET ECHTE STAFF USER ID --'
+--   ),
+--   (
+--     'd0000000-0000-0000-0000-000000000001',
+--     '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/d0000000-0000-0000-0000-000000000001/foto2.jpg',
+--     'Emma en Liam zandbak.jpg',
+--     'image/jpeg',
+--     1856000,
+--     1,
+--     '-- VERVANG MET ECHTE STAFF USER ID --'
+--   );

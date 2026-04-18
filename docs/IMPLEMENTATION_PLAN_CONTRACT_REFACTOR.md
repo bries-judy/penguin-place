@@ -551,6 +551,10 @@ Pas de contractweergave aan:
 
 ## Fase 6: Facturatie Refactor
 
+> **Kernprincipe facturatie — twee sporen:**
+> - **Vaste contracten** (standaard, schoolweken): vast maandbedrag, elke maand hetzelfde. Pro-rata alleen bij eerste/laatste maand. Bij jaarlijkse tariefwijziging wordt de maandprijs herberekend.
+> - **Flex contracten** (flexibel, super_flexibel): facturatie op basis van daadwerkelijk ingeplande uren × uurtarief. Wordt per maand berekend.
+
 ### Stap 6.1 — Migration: generate_maand_facturen() herschrijven
 
 ```
@@ -561,54 +565,71 @@ Lees ook 012_facturen_fixes.sql.
 
 Maak supabase/migrations/022_facturen_refactor.sql met een CREATE OR REPLACE FUNCTION generate_maand_facturen():
 
-Wijzigingen:
-1. Tariefbepaling: gebruik contract.uurtarief (nu gevuld vanuit TariefSet bij aanmaken)
-   — NIET meer direct uit tariefsets tabel joinen (contract is source of truth na aanmaken)
-2. Urenbepaling: gebruik contract.dagdelen jsonb om uren per dag op te halen:
-   - Per zorgdag: lookup DagdeelConfiguratie voor het dagdeel van die dag
-   - Groep-override > locatie-default
-3. Feestdagen uitsluiten: LEFT JOIN feestdagen, exclude matching dagen
-4. Kortingen toepassen: JOIN kind_contract_kortingen, trek berekend_bedrag af
-5. BSO logica: als opvangtype='bso', check dagtype via schoolkalender (als beschikbaar)
-6. Invoice line omschrijving uitbreiden met tarief + uren breakdown
+Er zijn TWEE facturatiepaden afhankelijk van contractvorm:
+
+PAD A — Vaste contracten (contractvorm = 'standaard' of 'schoolweken'):
+1. Factuurbedrag = contract.maandprijs_netto (vast maandbedrag, kortingen al verwerkt)
+2. Pro-rata ALLEEN bij:
+   - Eerste maand: startdatum na 1e → bedrag × (resterende_dagen / dagen_in_maand)
+   - Laatste maand: einddatum voor einde → bedrag × (actieve_dagen / dagen_in_maand)
+3. GEEN herberekening op basis van werkelijke uren, feestdagen of dagtypes
+4. Kortingen zijn al verwerkt in maandprijs_netto — NIET opnieuw berekenen
+
+PAD B — Flex contracten (contractvorm = 'flexibel' of 'super_flexibel'):
+1. Haal ingeplande uren op uit planned_attendance voor de facturatieperiode
+2. Factuurbedrag = SOM(ingeplande_uren) × contract.uurtarief
+3. Kortingen toepassen op het berekende bedrag (JOIN kind_contract_kortingen)
+4. Als geen uren ingepland: factuurregel met €0,00 en toelichting
+
+Beide paden:
+- Invoice line omschrijving: contracttype naam, merk, contractvorm
+- Pad A: toon vast maandbedrag + evt. pro-rata info
+- Pad B: toon uren × tarief berekening
+
+Resolve contractvorm via: JOIN contracttypen ct ON ct.id = contract.contract_type_id → ct.contractvorm.
+Voor legacy contracten zonder contract_type_id: val terug op bestaand gedrag (PAD A).
 
 Bewaar de oude functie als generate_maand_facturen_legacy() voor rollback.
 ```
 
-### Stap 6.2 — Server actions: Facturatie bijwerken
+### Stap 6.2 — Jaarlijkse tariefwijziging flow
 
 ```
 Prompt voor Claude Code:
 ────────────────────────
-Lees src/app/actions/facturen.ts.
+Lees src/app/actions/contracten.ts en src/app/actions/tarieven.ts.
 
-Minimale wijzigingen:
+Maak een nieuwe functie herbereken_contracten_voor_nieuw_tarief() die:
+1. Alle actieve contracten ophaalt voor een bepaald merk + contracttype
+2. Het nieuwe uurtarief ophaalt uit de actieve TariefSet voor het nieuwe jaar
+3. Per contract herberekent: maandprijs_bruto = uurtarief_nieuw × bestaande uren/dagen formule (uit contract.dagdelen)
+4. Kortingen opnieuw toepast → maandprijs_netto
+5. De contracten bijwerkt met de nieuwe prijzen
+6. Een contract_event logt (type: 'tarief_wijziging')
+
+Dit is een BULK operatie die de beheerder handmatig triggert na het activeren van een nieuwe tariefset.
+Vereist expliciete bevestiging — toon preview van oude vs nieuwe maandprijzen voordat wijzigingen worden doorgevoerd.
+```
+
+### Stap 6.3 — Server actions + UI: Facturatie bijwerken
+
+```
+Prompt voor Claude Code:
+────────────────────────
+Lees src/app/actions/facturen.ts en src/components/facturen/FacturenDashboard.tsx.
+
+Server actions — minimale wijzigingen:
 - genereerMaandFacturen(): geen wijziging nodig (roept RPC aan, SQL functie is al bijgewerkt)
-- checkFactuurIntegriteit(): uitbreiden met checks op:
-  * Contract heeft contract_type_id
-  * TariefSet bestaat voor het merk/jaar
-  * DagdeelConfiguratie bestaat voor locatie
-  * Kortingsbedragen kloppen met herberekening
-- getFactuurRegels(): voeg joins toe voor contracttype naam, merk naam, kortingen
+- getFactuurRegels(): voeg joins toe voor contracttype naam, merk naam
+- Bestaande functies NIET breken — alleen uitbreiden
 
-Bestaande functies NIET breken — alleen uitbreiden.
-```
+UI — factuurdetail view aanpassen:
+- Per factuurregel: toon contracttype + merk
+- Toon of het een pro-rata berekening is (eerste/laatste maand)
+- Toon bruto en netto bedrag
+- Kortingen tonen als informatief (al verwerkt in netto)
 
-### Stap 6.3 — UI: Factuurdetail uitbreiden
-
-```
-Prompt voor Claude Code:
-────────────────────────
-Lees src/components/facturen/FacturenDashboard.tsx.
-
-Pas de factuurdetail view aan:
-- Per factuurregel: toon tariefbron (merk + contracttype + jaar)
-- Toon urenberekening per dag
-- Toon kortingen als aparte regels (negatief bedrag)
-- Toon bruto → netto berekening
-- Als er feestdagen zijn uitgesloten: toon welke
-
-Houd het compact — accordion of tooltip voor details per regel.
+Houd het compact — geen complexe uren-breakdown nodig want het is een vast maandbedrag.
 ```
 
 ---

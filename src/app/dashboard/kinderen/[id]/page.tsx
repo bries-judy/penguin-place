@@ -25,6 +25,7 @@ export default async function KindProfielPage({
     notitiesResult,
     siblingsAResult,
     siblingsBResult,
+    dagverslagenResult,
     locatiesResult,
     groepenResult,
   ] = await Promise.all([
@@ -61,11 +62,29 @@ export default async function KindProfielPage({
       .select('id, kind_id_a, kinderen!siblings_kind_id_a_fkey(id, voornaam, tussenvoegsel, achternaam, geboortedatum)')
       .eq('kind_id_b', id),
 
+    supabase.from('dagverslagen')
+      .select('id, datum, activiteiten, eten_drinken, slaaptijden, stemming, bijzonderheden, gepubliceerd, gepubliceerd_op, auteur_id, created_at, dagverslag_media(id, bestandsnaam)')
+      .eq('kind_id', id)
+      .is('deleted_at', null)
+      .order('datum', { ascending: false }),
+
     supabase.from('locaties').select('id, naam').eq('actief', true).order('naam'),
     supabase.from('groepen').select('id, naam, locatie_id').eq('actief', true).order('naam'),
   ])
 
   if (!kindResult.data) notFound()
+
+  // Dagverslagen media mapping
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dagverslagen = (dagverslagenResult.data ?? []).map((dv: any) => ({
+    ...dv,
+    media: dv.dagverslag_media ?? [],
+  }))
+
+  // Actieve groep_id ophalen (eerste actieve contract met groep)
+  const actieveGroepId = (contractenResult.data ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .find((c: any) => c.status === 'actief' && c.groep_id)?.groep_id ?? null
 
   // Siblings samenvoegen
   const siblings = [
@@ -81,6 +100,8 @@ export default async function KindProfielPage({
       medisch={medischResult.data ?? null}
       contracten={contractenResult.data ?? []}
       notities={notitiesResult.data ?? []}
+      dagverslagen={dagverslagen}
+      actieveGroepId={actieveGroepId}
       siblings={siblings}
       locaties={locatiesResult.data ?? []}
       groepen={groepenResult.data ?? []}

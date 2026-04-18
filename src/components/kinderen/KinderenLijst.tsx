@@ -15,7 +15,7 @@ interface KindRij {
   verwachte_geboortedatum: string | null
   geslacht: string | null
   actief: boolean
-  aangemeld_op: string
+  aangemeld_op: string | null
   contracten: {
     id: string
     status: ContractStatus
